@@ -32,8 +32,9 @@ def checkIfProcessRunning(processName):
     return False
 
 class Handler(FileSystemEventHandler):
-    @staticmethod
-    def on_any_event(event):
+    MOVE_COUNT = 0
+
+    def on_any_event(self, event):
         GAME_PROCESS = bool(checkIfProcessRunning(DSPGAME_PROCESS))
         if event.is_directory:
             return None
@@ -45,10 +46,10 @@ class Handler(FileSystemEventHandler):
                     time.sleep(3)
                     print(f'Datei: "{split_path[-1]}" wird nach "{SSD_SAVE_PATH}\\{split_path[-1]}" verschoben!')
                     shutil.move(f'{event.src_path}', f'{SSD_SAVE_PATH}\\{split_path[-1]}')
-                    MOVE_COUNT += 1
-                    if MOVE_COUNT == 3:
+                    self.MOVE_COUNT += 1
+                    if self.MOVE_COUNT == 3:
                         check_logoff(COUNTER_TO_LOGOFF)
-                        MOVE_COUNT = 0
+                        self.MOVE_COUNT = 0
                 else:
                     print("Speicherpunkt %s wurde erstellt, aber er wird Ignoriert" % event.src_path)
 
@@ -96,7 +97,6 @@ def check_logoff(counter_to_logoff):
         COUNT +=1
     print(f'Logoff = {LOGOFF}\nCounter_to_logoff =  {counter_to_logoff}\nActual Counter = {COUNT}\n')
 
-
 def get_last_saves(folder):
     files = list(filter(os.path.isfile, glob.glob(folder + "\\*")))
     files.sort(key=lambda x: os.path.getmtime(x))
@@ -115,7 +115,6 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
             print(f'Datei: "{savegame}" wird nach "{RAW_DISK_SAVE_PATH}\\{savegame_filename_only}" kopiert!')
             shutil.copy(f'{SSD_SAVE_PATH}\\{savegame_filename_only}', f'{RAW_DISK_SAVE_PATH}\\{savegame_filename_only}')
             time.sleep(1)
-
 
 def main():
     print('Ueberprufe Game Prozess')
