@@ -97,53 +97,12 @@ def check_logoff(counter_to_logoff):
     print(f'Logoff = {LOGOFF}\nCounter_to_logoff =  {counter_to_logoff}\nActual Counter = {COUNT}\n')
 
 
-def check_newes_safe() -> list: #return hoechstes Safegame
-    import re
-    saves = []
-    print(f'Ueberpruefe Dateien in: {SSD_SAVE_PATH}')
-    files = os.listdir(SSD_SAVE_PATH) # Liste der Files im Ordner
-    for file in files:
-        save_number = re.findall(r'\d+', file) #Extrahiere die Zahlen aus dem Savegame
-        saves.append(save_number) if save_number not in saves else saves
-    if saves is None or saves == "" or saves == []:
-        return None
-    else:
-        print(f'return {max(saves)}')
-        return max(saves)
-
-
-
-def get_oldest_file(files, _invert=False):
-    """ Find and return the oldest file of input file names.
-    Only one wins tie. Values based on time distance from present.
-    Use of `_invert` inverts logic to make this a youngest routine,
-    to be used more clearly via `get_youngest_file`.
-    """
-    gt = operator.lt if _invert else operator.gt
-    # Check for empty list.
-    if not files:
-        return None
-    # Raw epoch distance.
-    now = time.time()
-    # Select first as arbitrary sentinel file, storing name and age.
-    oldest = files[0], now - os.path.getctime(files[0])
-    # Iterate over all remaining files.
-    for f in files[1:]:
-        age = now - os.path.getctime(f)
-        if gt(age, oldest[1]):
-            # Set new oldest.
-            oldest = f, age
-    # Return just the name of oldest file.
-    return oldest[0]
-
 def get_last_saves(folder):
     files = list(filter(os.path.isfile, glob.glob(folder + "\\*")))
     files.sort(key=lambda x: os.path.getmtime(x))
     return files[-3:]
 
 def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
-    save_number = check_newes_safe()
-    print(save_number)
     files = os.listdir(SSD_SAVE_PATH)
     if files == [] or files == "" or files is None:
         print('Keine Savegames gefunden')
@@ -156,6 +115,7 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
             print(f'Datei: "{savegame}" wird nach "{RAW_DISK_SAVE_PATH}\\{savegame_filename_only}" kopiert!')
             shutil.copy(f'{SSD_SAVE_PATH}\\{savegame_filename_only}', f'{RAW_DISK_SAVE_PATH}\\{savegame_filename_only}')
             time.sleep(1)
+
 
 def main():
     print('Ueberprufe Game Prozess')
