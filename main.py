@@ -12,6 +12,7 @@ from configparser import ConfigParser
 import psutil
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+import tkinter.font as tkFont
 
 """
 Start global variables
@@ -88,20 +89,6 @@ class config():
         except KeyError as e:
             return print(f'Config: {e}, Error read the configfile')
 
-def checkIfProcessRunning(processName):
-    '''
-    Check if there is any running process that contains the given name processName.
-    '''
-    #Iterate over the all the running process
-    for proc in psutil.process_iter():
-        try:
-            # Check if process name contains the given name string.
-            if processName.lower() in proc.name().lower():
-                return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False
-
 class Handler(FileSystemEventHandler):
     MOVE_COUNT = 0
     def on_any_event(self, event):
@@ -159,6 +146,20 @@ class threaded_observer(Thread):
             my_observer.stop()
             my_observer.join()
 
+def checkIfProcessRunning(processName):
+    '''
+    Check if there is any running process that contains the given name processName.
+    '''
+    #Iterate over the all the running process
+    for proc in psutil.process_iter():
+        try:
+            # Check if process name contains the given name string.
+            if processName.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False
+
 def check_logoff(counter_to_logoff):
     global COUNT, LOGOFF
     if LOGOFF:
@@ -193,56 +194,156 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
             shutil.copy(f'{config.BACKUP_SAVE_PATH}\\{savegame_filename_only}', f'{config.DSP_SAVEGAME_FOLDER}\\{savegame_filename_only}')
             time.sleep(1)
 
-class CheckStates(Thread):
-    def __init__(self, state):
-        super().__init__()
-        self.state = state
-
-    def check(self):
-        return self.state
-
 class MainWindow(tk.Tk):
     def __init__(self, watchdog):
         super().__init__()
         self.watchdog = watchdog
-        self.title("SavegameManager")  # give title to the window
-        self.rootWidth = 500
-        self.rootHeight = 500
-        # self.geometry('800x600')
-        self.minsize(self.rootWidth, self.rootHeight)
-        self.maxsize(self.rootWidth, self.rootHeight)
-        self.create_body_frame()
-        self.create_footer_frame()
+        self.title("DSP_SaveGameManager")
+        #setting window size
+        width=600
+        height=500
+        screenwidth = self.winfo_screenwidth()
+        screenheight = self.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        self.geometry(alignstr)
+        self.resizable(width=False, height=False)
+        self.labels()
+        self.messagebox()
+        self.checkboxes()
+        self.buttons()
 
-    def create_body_frame(self):
-        #create Frame and set Column and row configures
-        self.header = ttk.Frame(self)
-        self.header.columnconfigure(0, weight=1)
-        self.header.columnconfigure(1, weight=10)
-        self.header.columnconfigure(2, weight=1)
+    def labels(self):
+        LABEL_HEADER = tk.Label(self)
+        ft = tkFont.Font(family='Times', size=14)
+        LABEL_HEADER["cursor"] = "cross"
+        LABEL_HEADER["font"] = ft
+        LABEL_HEADER["fg"] = "#333333"
+        LABEL_HEADER["justify"] = "center"
+        LABEL_HEADER["text"] = "DSP SaveGameManager "
+        LABEL_HEADER.place(x=160,y=10,width=246,height=30)
 
-        #creating variables and set them
-        self.watchdog_var = tk.StringVar()
-        self.watchdog_var.set(config.FOLDER_WATCHDOG)
+        LABEL_DEBUG=tk.Label(self)
+        ft = tkFont.Font(family='Times',size=10)
+        LABEL_DEBUG["font"] = ft
+        LABEL_DEBUG["fg"] = "#333333"
+        LABEL_DEBUG["justify"] = "right"
+        LABEL_DEBUG["text"] = "DEBUG?"
+        LABEL_DEBUG.place(x=120,y=40,width=257,height=30)
 
-        #creating Labels
-        self.headlabel = ttk.Label(self.header, text="DSP_SaveGame Manager").grid(column=0,row=0,sticky=tk.W)
-        self.statusLabel = ttk.Label(self.header, text='Watchdog Status:').grid(column=0,row=1,sticky=tk.W)
-        self.watchdog_label = ttk.Label(self.header, textvariable=self.watchdog_var).grid(column=1,row=1,sticky=tk.W)
+        LABEL_FOLDER_WATCHDOG=tk.Label(self)
+        ft = tkFont.Font(family='Times',size=10)
+        LABEL_FOLDER_WATCHDOG["font"] = ft
+        LABEL_FOLDER_WATCHDOG["fg"] = "#333333"
+        LABEL_FOLDER_WATCHDOG["justify"] = "right"
+        LABEL_FOLDER_WATCHDOG["text"] = "Save Data into Backup folder?"
+        LABEL_FOLDER_WATCHDOG.place(x=120,y=70,width=255,height=30)
 
-        # creating buttons
-        ttk.Button(self.header, text='Change Watchdog', command=lambda: self.watchdog_change()).grid(column=3, row=1,  sticky=tk.W)
+        LABEL_COPY_FROM_SAVE_TO_ORIGIAL=tk.Label(self)
+        ft = tkFont.Font(family='Times',size=10)
+        LABEL_COPY_FROM_SAVE_TO_ORIGIAL["font"] = ft
+        LABEL_COPY_FROM_SAVE_TO_ORIGIAL["fg"] = "#333333"
+        LABEL_COPY_FROM_SAVE_TO_ORIGIAL["justify"] = "right"
+        LABEL_COPY_FROM_SAVE_TO_ORIGIAL["text"] = "Restore last Save?"
+        LABEL_COPY_FROM_SAVE_TO_ORIGIAL.place(x=120,y=100,width=255,height=30)
 
-        #pack everything
-        self.header.pack()
+        LABEL_DSP_START_GAME=tk.Label(self)
+        ft = tkFont.Font(family='Times',size=10)
+        LABEL_DSP_START_GAME["font"] = ft
+        LABEL_DSP_START_GAME["fg"] = "#333333"
+        LABEL_DSP_START_GAME["justify"] = "right"
+        LABEL_DSP_START_GAME["text"] = "Autostart DSP?"
+        LABEL_DSP_START_GAME.place(x=120,y=130,width=255,height=30)
 
-    def create_footer_frame(self):
-        self.footer = ttk.Frame(self)
-        self.footer.columnconfigure(0, weight=1)
-        self.footer.columnconfigure(1, weight=10)
-        self.footer.columnconfigure(2, weight=1)
-        ttk.Button(self.header, text='Beenden', command=lambda: self.stop()).grid(pady=self.rootHeight/100*80, column=3, row=3, sticky=tk.S)
-        self.footer.pack(anchor='center')
+    def checkboxes(self):
+        CHECKBOX_DEBUG=tk.Checkbutton(self)
+        ft = tkFont.Font(family='Times',size=10)
+        CHECKBOX_DEBUG["font"] = ft
+        CHECKBOX_DEBUG["fg"] = "#333333"
+        CHECKBOX_DEBUG["justify"] = "center"
+        CHECKBOX_DEBUG["text"] = ""
+        CHECKBOX_DEBUG.place(x=390,y=40,width=70,height=25)
+        CHECKBOX_DEBUG["offvalue"] = False
+        CHECKBOX_DEBUG["onvalue"] = True
+        CHECKBOX_DEBUG["command"] = self.CHECKBOX_DEBUG
+
+        CHECKBOX_FOLDER_WATCHDOG=tk.Checkbutton(self)
+        ft = tkFont.Font(family='Times',size=10)
+        CHECKBOX_FOLDER_WATCHDOG["font"] = ft
+        CHECKBOX_FOLDER_WATCHDOG["fg"] = "#333333"
+        CHECKBOX_FOLDER_WATCHDOG["justify"] = "center"
+        CHECKBOX_FOLDER_WATCHDOG["text"] = ""
+        CHECKBOX_FOLDER_WATCHDOG.place(x=390,y=70,width=70,height=25)
+        CHECKBOX_FOLDER_WATCHDOG["offvalue"] = False
+        CHECKBOX_FOLDER_WATCHDOG["onvalue"] = True
+        CHECKBOX_FOLDER_WATCHDOG["command"] = self.CHECKBOX_FOLDER_WATCHDOG
+
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL=tk.Checkbutton(self)
+        ft = tkFont.Font(family='Times',size=10)
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["font"] = ft
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["fg"] = "#333333"
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["justify"] = "center"
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["text"] = ""
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL.place(x=390,y=100,width=70,height=25)
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["offvalue"] = False
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["onvalue"] = True
+        CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["command"] = self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL
+
+        CHECKBOX_DSP_START_GAME=tk.Checkbutton(self)
+        ft = tkFont.Font(family='Times',size=10)
+        CHECKBOX_DSP_START_GAME["font"] = ft
+        CHECKBOX_DSP_START_GAME["fg"] = "#333333"
+        CHECKBOX_DSP_START_GAME["justify"] = "center"
+        CHECKBOX_DSP_START_GAME["text"] = ""
+        CHECKBOX_DSP_START_GAME.place(x=390,y=130,width=70,height=25)
+        CHECKBOX_DSP_START_GAME["offvalue"] = False
+        CHECKBOX_DSP_START_GAME["onvalue"] = True
+        CHECKBOX_DSP_START_GAME["command"] = self.CHECKBOX_DSP_START_GAME
+
+    def messagebox(self):
+        MESSAGE_BOX=tk.Message(self)
+        ft = tkFont.Font(family='Times',size=10)
+        MESSAGE_BOX["font"] = ft
+        MESSAGE_BOX["fg"] = "#333333"
+        MESSAGE_BOX["justify"] = "center"
+        MESSAGE_BOX["text"] = "Dies ist ein langer text"
+        MESSAGE_BOX.place(x=40,y=340,width=497,height=127)
+
+    def buttons(self):
+        BUTTON_SAVE=tk.Button(self)
+        BUTTON_SAVE["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=10)
+        BUTTON_SAVE["font"] = ft
+        BUTTON_SAVE["fg"] = "#000000"
+        BUTTON_SAVE["justify"] = "center"
+        BUTTON_SAVE["text"] = "Save"
+        BUTTON_SAVE.place(x=420,y=450,width=70,height=25)
+        BUTTON_SAVE["command"] = lambda: self.save()
+
+        BUTTON_BEENDEN=tk.Button(self)
+        BUTTON_BEENDEN["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=10)
+        BUTTON_BEENDEN["font"] = ft
+        BUTTON_BEENDEN["fg"] = "#000000"
+        BUTTON_BEENDEN["justify"] = "center"
+        BUTTON_BEENDEN["text"] = "Beenden"
+        BUTTON_BEENDEN.place(x=500,y=450,width=70,height=25)
+        BUTTON_BEENDEN["command"] = lambda: self.stop()
+
+    def CHECKBOX_DEBUG(self):
+        print("command")
+
+
+    def CHECKBOX_FOLDER_WATCHDOG(self):
+        print("command")
+
+
+    def CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL(self):
+        print("command")
+
+
+    def CHECKBOX_DSP_START_GAME(self):
+        print("command")
+
 
     def watchdog_change(self):
         if self.watchdog.running:
