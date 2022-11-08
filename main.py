@@ -41,12 +41,14 @@ class config():
             self.config.add_section('debug')
             self.config.set('debug', 'DEBUG', 'True')
             self.config.add_section('main')
-            self.config.set('main', 'DSPGAME_PROCESS',  'DSPGAME.exe')
-            self.config.set('main', 'DSPGAME_START_GAME', 'True')
             self.config.set('main', 'FOLDER_WATCHDOG', 'True')
             self.config.set('main', 'DSP_SAVEGAME_FOLDER', rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save')
             self.config.set('main', 'BACKUP_SAVE_PATH', rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup' )
             self.config.set('main', 'COPY_FROM_SAVE_TO_ORIGINAL', 'True')
+            self.config.add_section('game')
+            self.config.set('game', 'DSPGAME_PROCESS',  'DSPGAME.exe')
+            self.config.set('game', 'DSPGAME_START_GAME', 'True')
+            self.config.set('game', 'STEAM_PATH', r'C:\Program Files (x86)\Steam\Steam.exe')
             self.config.add_section('logoff')
             self.config.set('logoff', 'COUNTER_TO_LOGOFF', '6')
 
@@ -62,20 +64,23 @@ class config():
         print('Config: set global varaibles')
         try:
             self.DEBUG = self.config.get('debug', 'DEBUG')
-            self.DSPGAME_PROCESS = self.config.get('main', 'DSPGAME_PROCESS')
-            self.DSPGAME_START_GAME = self.config.get('main', 'DSPGAME_START_GAME')
             self.FOLDER_WATCHDOG = self.config.get('main','FOLDER_WATCHDOG')
             self.DSP_SAVEGAME_FOLDER = self.config.get('main', 'DSP_SAVEGAME_FOLDER')
             self.BACKUP_SAVE_PATH = self.config.get('main', 'BACKUP_SAVE_PATH')
             self.COPY_FROM_SAVE_TO_ORIGINAL = self.config.get('main', 'COPY_FROM_SAVE_TO_ORIGINAL')
+            self.DSPGAME_PROCESS = self.config.get('game', 'DSPGAME_PROCESS')
+            self.DSPGAME_START_GAME = self.config.get('game', 'DSPGAME_START_GAME')
+            self.STEAM_PATH = self.config.get('game', 'STEAM_PATH')
             self.COUNTER_TO_LOGOFF = self.config.get('logoff', 'COUNTER_TO_LOGOFF')
             if self.DEBUG:
                 print(f'DEBUG = {self.DEBUG}\n'
                       f'FOLDER_WATCHDOG = {self.FOLDER_WATCHDOG}\n'
-                      f'DSPGAME_PROCESS = {self.DSPGAME_PROCESS}\n'
                       f'DSP_SAVEGAME_FOLDER = {self.DSP_SAVEGAME_FOLDER}\n'
                       f'BACKUP_SAVE_PATH= {self.BACKUP_SAVE_PATH}\n'
                       f'COPY_FROM_SAVE_TO_ORIGINAL = {self.COPY_FROM_SAVE_TO_ORIGINAL}\n'
+                      f'DSPGAME_PROCESS = {self.DSPGAME_PROCESS}\n'
+                      f'DSPGAME_START_GAME = {self.DSPGAME_START_GAME}\n'
+                      f'STEAM_PATH = {self.STEAM_PATH}\n'
                       f'COUNTER_TO_LOGOFF = {self.COUNTER_TO_LOGOFF}\n')
 
 
@@ -254,18 +259,20 @@ class MainWindow(tk.Tk):
 def main():
     print('Window wird erstellt')
     print('Ueberprufe Game Prozess')
-    if not checkIfProcessRunning(config.DSPGAME_PROCESS) and not config.DSPGAME_START_GAME:
+    if config.COPY_FROM_SAVE_TO_ORIGINAL in [True, "True"]:
+        print('COPY_FROM_SAVE_TO_ORIGINAL: Kopiere Savegames')
+        copy_to_ramdisk()
+    if not checkIfProcessRunning(config.DSPGAME_PROCESS) and config.DSPGAME_START_GAME in [True, "True"]:
         print('Spiel wird gestartet')
-        subprocess.Popen(r"C:\Program Files (x86)\Steam\Steam.exe -applaunch 1366540")
+        subprocess.Popen(rf"{config.STEAM_PATH} -applaunch 1366540")
         while not checkIfProcessRunning(config.DSPGAME_PROCESS):
             print('Warte auf Spielstart')
             time.sleep(3)
         print('DSP erfolgreich gestartet')
     else:
         print('DSP bereits gestartet')
-    if config.COPY_FROM_SAVE_TO_ORIGINAL:
-        copy_to_ramdisk()
-    if config.LOGOFF:
+
+    if config.LOGOFF in [True, "True"]:
         shutdowntime = datetime.datetime.now() + datetime.timedelta(minutes=int(config.COUNTER_TO_LOGOFF*10))
         final_time_str = shutdowntime.strftime('%d/%m/%Y %H:%M:%S')
         print(f'ACHTUNG: Logofftimer aktiviert, herunterfahren in {int(config.COUNTER_TO_LOGOFF*10)} Minuten! ({final_time_str})')
