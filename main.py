@@ -13,29 +13,14 @@ import psutil
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-#Globals
 """
-Debug
-"""
-DEBUG = False
-"""
-MAIN
-"""
-DSPGAME_PROCESS = ""
-DSP_SAVEGAME_FOLDER = ""
-BACKUP_SAVE_PATH = ""
-COPY_FROM_SAVE_TO_ORIGINAL = ""
-"""
-Logoff
-"""
-LOGOFF = False
-COUNTER_TO_LOGOFF = 0
-
-"""
-etc.
+Start global variables
 """
 COUNT = 0
 MOVE_COUNT = 0
+"""
+End global variables
+"""
 
 class config():
     """
@@ -117,7 +102,7 @@ class Handler(FileSystemEventHandler):
         if event.is_directory:
             return None
         elif event.event_type == 'created':
-            if GAME_PROCESS or DEBUG:
+            if GAME_PROCESS or config.DEBUG:
                 # Take any action here when a file is first created.
                 split_path = event.src_path.split('\\')
                 if 'save' in str(split_path[-1]).lower():
@@ -126,7 +111,7 @@ class Handler(FileSystemEventHandler):
                     shutil.move(f'{event.src_path}', f'{config.BACKUP_SAVE_PATH}\\{split_path[-1]}')
                     self.MOVE_COUNT += 1
                     if self.MOVE_COUNT == 3:
-                        check_logoff(COUNTER_TO_LOGOFF)
+                        check_logoff(config.COUNTER_TO_LOGOFF)
                         self.MOVE_COUNT = 0
                 else:
                     print("Speicherpunkt %s wurde erstellt, aber er wird Ignoriert" % event.src_path)
@@ -157,7 +142,7 @@ class threaded_observer(Thread):
         global my_observer
         self.my_event_handler = Handler()
         self.my_observer = Observer()
-        self.my_observer.schedule(self.my_event_handler, path=DSP_SAVEGAME_FOLDER, recursive=False)
+        self.my_observer.schedule(self.my_event_handler, path=config.DSP_SAVEGAME_FOLDER, recursive=False)
         self.my_observer.start()
 
     def startup_observer(self):
