@@ -42,9 +42,10 @@ class config():
             self.config.set('debug', 'DEBUG', 'True')
             self.config.add_section('main')
             self.config.set('main', 'DSPGAME_PROCESS',  'DSPGAME.exe')
+            self.config.set('main', 'DSPGAME_START_GAME', 'True')
             self.config.set('main', 'FOLDER_WATCHDOG', 'True')
-            self.config.set('main', 'DSP_SAVEGAME_FOLDER', rf'"C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save"')
-            self.config.set('main', 'BACKUP_SAVE_PATH', rf'"C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup"' )
+            self.config.set('main', 'DSP_SAVEGAME_FOLDER', rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save')
+            self.config.set('main', 'BACKUP_SAVE_PATH', rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup' )
             self.config.set('main', 'COPY_FROM_SAVE_TO_ORIGINAL', 'True')
             self.config.add_section('logoff')
             self.config.set('logoff', 'COUNTER_TO_LOGOFF', '6')
@@ -61,8 +62,9 @@ class config():
         print('Config: set global varaibles')
         try:
             self.DEBUG = self.config.get('debug', 'DEBUG')
-            self.FOLDER_WATCHDOG = self.config.get('main','FOLDER_WATCHDOG')
             self.DSPGAME_PROCESS = self.config.get('main', 'DSPGAME_PROCESS')
+            self.DSPGAME_START_GAME = self.config.get('main', 'DSPGAME_START_GAME')
+            self.FOLDER_WATCHDOG = self.config.get('main','FOLDER_WATCHDOG')
             self.DSP_SAVEGAME_FOLDER = self.config.get('main', 'DSP_SAVEGAME_FOLDER')
             self.BACKUP_SAVE_PATH = self.config.get('main', 'BACKUP_SAVE_PATH')
             self.COPY_FROM_SAVE_TO_ORIGINAL = self.config.get('main', 'COPY_FROM_SAVE_TO_ORIGINAL')
@@ -173,7 +175,7 @@ def get_last_saves(folder):
     return files[-3:]
 
 def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
-    files = os.listdir(BACKUP_SAVE_PATH)
+    files = os.listdir(config.BACKUP_SAVE_PATH)
     if files == [] or files == "" or files is None:
         print('Keine Savegames gefunden')
     else:
@@ -219,7 +221,7 @@ class MainWindow(tk.Tk):
         self.watchdog_var.set(config.FOLDER_WATCHDOG)
 
         #creating Labels
-        self.headlabel = ttk.Label(self.header, text="Shutdown, Restart and Logout Using Pc").grid(column=0,row=0,sticky=tk.W)
+        self.headlabel = ttk.Label(self.header, text="DSP_SaveGame Manager").grid(column=0,row=0,sticky=tk.W)
         self.statusLabel = ttk.Label(self.header, text='Watchdog Status:').grid(column=0,row=1,sticky=tk.W)
         self.watchdog_label = ttk.Label(self.header, textvariable=self.watchdog_var).grid(column=1,row=1,sticky=tk.W)
 
@@ -252,7 +254,7 @@ class MainWindow(tk.Tk):
 def main():
     print('Window wird erstellt')
     print('Ueberprufe Game Prozess')
-    if not checkIfProcessRunning(config.DSPGAME_PROCESS) and not config.DEBUG:
+    if not checkIfProcessRunning(config.DSPGAME_PROCESS) and not config.DSPGAME_START_GAME:
         print('Spiel wird gestartet')
         subprocess.Popen(r"C:\Program Files (x86)\Steam\Steam.exe -applaunch 1366540")
         while not checkIfProcessRunning(config.DSPGAME_PROCESS):
@@ -261,9 +263,9 @@ def main():
         print('DSP erfolgreich gestartet')
     else:
         print('DSP bereits gestartet')
-    if config.COPY_FROM_SAVE_TO_ORIGINAL and not config.DEBUG:
+    if config.COPY_FROM_SAVE_TO_ORIGINAL:
         copy_to_ramdisk()
-    if config.LOGOFF and not config.DEBUG:
+    if config.LOGOFF:
         shutdowntime = datetime.datetime.now() + datetime.timedelta(minutes=int(config.COUNTER_TO_LOGOFF*10))
         final_time_str = shutdowntime.strftime('%d/%m/%Y %H:%M:%S')
         print(f'ACHTUNG: Logofftimer aktiviert, herunterfahren in {int(config.COUNTER_TO_LOGOFF*10)} Minuten! ({final_time_str})')
@@ -272,9 +274,6 @@ def main():
     print('Watchdog wurde gestartet')
     app = MainWindow(watchdog)
     app.mainloop()
-
-
-
 
 
 if __name__ == '__main__':
