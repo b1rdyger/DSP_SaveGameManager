@@ -1,13 +1,16 @@
+import datetime
+import glob
+import os
 import shutil
 import subprocess
-import sys, os, glob, operator
-from threading import Thread
 import time
-import datetime
-import psutil
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+import tkinter as tk
+from tkinter import ttk
+from threading import Thread
 
+import psutil
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 #Globals
 DSPGAME_PROCESS = 'DSPGAME.exe'
@@ -54,6 +57,7 @@ class Handler(FileSystemEventHandler):
                     print("Speicherpunkt %s wurde erstellt, aber er wird Ignoriert" % event.src_path)
 
 class threaded_observer(Thread):
+    running = False
     DIRECTORY_TO_WATCH = RAW_DISK_SAVE_PATH
     def __init__(self):
         Thread.__init__(self)
@@ -64,6 +68,9 @@ class threaded_observer(Thread):
         while self.running:
             self.startup_observer()
             time.sleep(1)
+
+    def start(self):
+        self.running = True
 
     def stop(self):
         self.running = False
@@ -116,9 +123,73 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
             shutil.copy(f'{SSD_SAVE_PATH}\\{savegame_filename_only}', f'{RAW_DISK_SAVE_PATH}\\{savegame_filename_only}')
             time.sleep(1)
 
+class CheckStates(Thread):
+    def __init__(self, state):
+        super().__init__()
+        self.state = state
+
+    def check(self):
+        return self.state
+
+class MainWindow(tk.Tk):
+    def __init__(self, watchdog):
+        super().__init__()
+        self.watchdog = watchdog
+        self.title("SavegameManager")  # give title to the window
+        self.rootWidth = 500
+        self.rootHeight = 500
+        # self.geometry('800x600')
+        self.minsize(self.rootWidth, self.rootHeight)
+        self.maxsize(self.rootWidth, self.rootHeight)
+        self.create_body_frame()
+        self.create_footer_frame()
+
+    def create_body_frame(self):
+        #create Frame and set Column and row configures
+        self.header = ttk.Frame(self)
+        self.header.columnconfigure(0, weight=1)
+        self.header.columnconfigure(1, weight=10)
+        self.header.columnconfigure(2, weight=1)
+
+        #creating variables and set them
+        self.watchdog_var = tk.StringVar()
+        self.watchdog_var.set('Watchdog gestartet')
+
+        #creating Labels
+        self.headlabel = ttk.Label(self.header, text="Shutdown, Restart and Logout Using Pc").grid(column=0,row=0,sticky=tk.W)
+        self.statusLabel = ttk.Label(self.header, text='Watchdog Status:').grid(column=0,row=1,sticky=tk.W)
+        self.watchdog_label = ttk.Label(self.header, textvariable=self.watchdog_var).grid(column=1,row=1,sticky=tk.W)
+
+        # creating buttons
+        ttk.Button(self.header, text='Change Watchdog', command=lambda: self.watchdog_change()).grid(column=3, row=1,  sticky=tk.W)
+
+        #pack everything
+        self.header.pack()
+
+    def create_footer_frame(self):
+        self.footer = ttk.Frame(self)
+        self.footer.columnconfigure(0, weight=1)
+        self.footer.columnconfigure(1, weight=10)
+        self.footer.columnconfigure(2, weight=1)
+        ttk.Button(self.header, text='Beenden', command=lambda: self.stop()).grid(pady=self.rootHeight/100*80, column=3, row=3, sticky=tk.S)
+        self.footer.pack(anchor='center')
+
+    def watchdog_change(self):
+        if self.watchdog.running:
+            self.watchdog.stop()
+            self.watchdog_var.set('Watchdog beendet')
+        else:
+            self.watchdog.start()
+            self.watchdog_var.set('Watchdog gestartet')
+
+
+    def stop(self):
+        self.destroy()
+
 def main():
+    print('Window wird erstellt')
     print('Ueberprufe Game Prozess')
-    if not DEBUG and not checkIfProcessRunning(DSPGAME_PROCESS):
+    if not checkIfProcessRunning(DSPGAME_PROCESS) and not DEBUG:
         print('Spiel wird gestartet')
         subprocess.Popen(r"C:\Program Files (x86)\Steam\Steam.exe -applaunch 1366540")
         while not checkIfProcessRunning(DSPGAME_PROCESS):
@@ -127,21 +198,24 @@ def main():
         print('DSP erfolgreich gestartet')
     else:
         print('DSP bereits gestartet')
-    if COPY_TO_RAMDISK:
+    if COPY_TO_RAMDISK and not DEBUG:
         copy_to_ramdisk()
     if LOGOFF and not DEBUG:
         shutdowntime = datetime.datetime.now() + datetime.timedelta(minutes=int(COUNTER_TO_LOGOFF*10))
         final_time_str = shutdowntime.strftime('%d/%m/%Y %H:%M:%S')
         print(f'ACHTUNG: Logofftimer aktiviert, herunterfahren in {int(COUNTER_TO_LOGOFF*10)} Minuten! ({final_time_str})')
     print('Watchdog wird gestartet')
-    threaded_observer()
+    watchdog = threaded_observer()
+    print('Watchdog wurde gestartet')
+    app = MainWindow(watchdog)
+    app.mainloop()
 
-    while True:
-        time.sleep(1)
+
+
 
 
 if __name__ == '__main__':
-    DEBUG = False
+    DEBUG = True
     COPY_TO_RAMDISK = True
     LOGOFF = False
     COUNTER_TO_LOGOFF = 6  # (1 Hour after decide to Logoff).
