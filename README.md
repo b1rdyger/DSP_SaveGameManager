@@ -1,25 +1,26 @@
 # DSP_SaveGameManager
 This is an SaveGameManger for DSP Nebula Multiplayer.
 
-To use this script its neccasary to install the following Plugin.
+To use this script its neccasary to install the following DSP Plugin.
 - ScheduledSave
 
-Please create a new folder in the DSP root directory or change the paths yourself.
+Please create a new folder in the Documents\DSPGAME directory or change the paths yourself.
+See config.ini, possible parameters
 
-RAW_DISK_SAVE_PATH=rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save'
-SSD_SAVE_PATH=rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup'
+DSPGAME_PROCESS = DSPGAME.exe 
+ - Set the DSPGAME Process Name, if it changes in the future
 
+FOLDER_WATCHDOG = False 
+ - If True: The programm watches for changes in DSP_SAVEGAME_FOLDER and react to the events 
 
-In the main-function u can set some features:
-COPY_TO_RAMDISK = True # boolean
- - if True:
-      copies the Data from SSD_SAVE_PATH back to "Save" folder
-LOGOFF = False # boolean
-  - if True:
-    Shutdown the entire System after the ammount of "ScheduledSaves"
+DSP_SAVEGAME_FOLDER = "C:\Users\apwxv\Documents\Dyson Sphere Program\Save"
+ - Set the Original Savegamefolder
+
+BACKUP_SAVE_PATH = "C:\Users\apwxv\Documents\Dyson Sphere Program\save_backup"
+ - Set the Backup Savegamefolder
+
+COPY_FROM_SAVE_TO_ORIGINAL = True
+ - if True: copies the Data from DSP_SAVEGAME_FOLDER back to "Save" folder
 
 COUNTER_TO_LOGOFF = 6  # int
-  - set the ammount of Saves before the system shut off
-  
-  
- 
+ - set the ammount of Saves before the system shut off
