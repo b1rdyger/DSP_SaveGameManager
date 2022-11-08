@@ -25,6 +25,7 @@ End global variables
 """
 
 class config_tools():
+    LOGOFF = False
     """
     This class will check if there is a config file.
     If there is a configfile this will be loaded.
@@ -63,6 +64,9 @@ class config_tools():
         except:
             print('Config: cannot read "config.ini"')
         print('Config: set global varaibles')
+        self.read_config()
+
+    def read_config(self):
         try:
             self.DEBUG = self.config.get('debug', 'DEBUG')
             self.FOLDER_WATCHDOG = self.config.get('main','FOLDER_WATCHDOG')
@@ -125,7 +129,7 @@ class threaded_observer(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.my_observer = None
-        if config.FOLDER_WATCHDOG == True:
+        if config.FOLDER_WATCHDOG == "True":
             self.running = True
             self.init_observer()
 
@@ -175,8 +179,8 @@ def checkIfProcessRunning(processName):
     return False
 
 def check_logoff(counter_to_logoff):
-    global COUNT, LOGOFF
-    if LOGOFF:
+    global COUNT
+    if config.LOGOFF:
         if COUNT == counter_to_logoff:
             time.sleep(10)
             print('Spiel wird beendet')
@@ -187,7 +191,8 @@ def check_logoff(counter_to_logoff):
             os.system("shutdown /s /t 60")
             sys.exit()
         COUNT +=1
-    print(f'Logoff = {config.LOGOFF}\nCounter_to_logoff =  {counter_to_logoff}\nActual Counter = {COUNT}\n')
+    if config.DEBUG:
+        print(f'Logoff = {config.LOGOFF}\nCounter_to_logoff= {counter_to_logoff*10} min\nActual Counter = {COUNT}\n')
 
 def get_last_saves(folder):
     files = list(filter(os.path.isfile, glob.glob(folder + "\\*")))
@@ -227,6 +232,7 @@ class MainWindow(tk.Tk):
         super().__init__()
         self.config = config
         self.watchdog = watchdog
+        self.LOGOFF = False
         self.title("DSP_SaveGameManager")
         #setting window size
         width=600
@@ -236,7 +242,6 @@ class MainWindow(tk.Tk):
         alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
         self.geometry(alignstr)
         self.resizable(width=False, height=False)
-
         self.labels_view()
         self.messagebox_view()
         self.checkboxes_view()
@@ -244,12 +249,10 @@ class MainWindow(tk.Tk):
         self.update_messages()
         self.main() #Main routine
 
+
     def main(self):
         print('Window wird erstellt')
         print('Ueberprufe Game Prozess')
-        if self.config.COPY_FROM_SAVE_TO_ORIGINAL in [True, "True"]:
-            print('COPY_FROM_SAVE_TO_ORIGINAL: Kopiere Savegames')
-            copy_to_ramdisk()
         if not checkIfProcessRunning(self.config.DSPGAME_PROCESS) and self.config.DSPGAME_START_GAME in [True, "True"]:
             print('Spiel wird gestartet')
             subprocess.Popen(rf"{self.config.STEAM_PATH} -applaunch 1366540")
@@ -259,11 +262,6 @@ class MainWindow(tk.Tk):
             print('DSP erfolgreich gestartet')
         else:
             print('DSP bereits gestartet')
-
-        if self.config.LOGOFF in [True, "True"]:
-            shutdowntime = datetime.datetime.now() + datetime.timedelta(minutes=int(self.config.COUNTER_TO_LOGOFF * 10))
-            final_time_str = shutdowntime.strftime('%d/%m/%Y %H:%M:%S')
-            print(f'ACHTUNG: Logofftimer aktiviert, herunterfahren in {int(self.config.COUNTER_TO_LOGOFF * 10)} Minuten! ({final_time_str})')
 
     def labels_view(self):
         LABEL_HEADER = tk.Label(self)
@@ -307,6 +305,15 @@ class MainWindow(tk.Tk):
         LABEL_DSP_START_GAME["text"] = "Autostart DSP?"
         LABEL_DSP_START_GAME.place(x=120,y=130,width=255,height=30)
 
+        self.LABEL_LOGOFF=tk.Label(self)
+        ft = tkFont.Font(family='Times',size=10)
+        self.LABEL_LOGOFF["font"] = ft
+        self.LABEL_LOGOFF["fg"] = "#333333"
+        self.LABEL_LOGOFF["justify"] = "right"
+        self.LABEL_LOGOFF["text"] = f"Logofftimer {int(self.config.COUNTER_TO_LOGOFF) * 10} min"
+        self.LABEL_LOGOFF.place(x=120,y=160,width=255,height=30)
+
+
     def checkboxes_view(self):
         self.CHECKBOX_DEBUG_VAR = tk.BooleanVar()
         self.CHECKBOX_DEBUG=tk.Checkbutton(self, variable=self.CHECKBOX_DEBUG_VAR)
@@ -318,7 +325,7 @@ class MainWindow(tk.Tk):
         self.CHECKBOX_DEBUG.place(x=390,y=40,width=70,height=25)
         self.CHECKBOX_DEBUG["offvalue"] = False
         self.CHECKBOX_DEBUG["onvalue"] = True
-        self.CHECKBOX_DEBUG["command"] = self.CHECKBOX_DEBUG_BOX
+        self.CHECKBOX_DEBUG["command"] = self.CHECKBOX_DEBUG_COMMAND
         self.CHECKBOX_DEBUG.select() if self.config.DEBUG == "True" else self.CHECKBOX_DEBUG.deselect()
 
         self.CHECKBOX_FOLDER_WATCHDOG_VAR = tk.BooleanVar()
@@ -331,7 +338,7 @@ class MainWindow(tk.Tk):
         self.CHECKBOX_FOLDER_WATCHDOG.place(x=390,y=70,width=70,height=25)
         self.CHECKBOX_FOLDER_WATCHDOG["offvalue"] = False
         self.CHECKBOX_FOLDER_WATCHDOG["onvalue"] = True
-        self.CHECKBOX_FOLDER_WATCHDOG["command"] = self.CHECKBOX_FOLDER_WATCHDOG_BOX
+        self.CHECKBOX_FOLDER_WATCHDOG["command"] = self.CHECKBOX_FOLDER_WATCHDOG_COMMAND
         self.CHECKBOX_FOLDER_WATCHDOG.select() if self.config.FOLDER_WATCHDOG == "True" else self.CHECKBOX_FOLDER_WATCHDOG.deselect()
 
         self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL_VAR = tk.BooleanVar()
@@ -344,7 +351,7 @@ class MainWindow(tk.Tk):
         self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL.place(x=390,y=100,width=70,height=25)
         self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["offvalue"] = False
         self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["onvalue"] = True
-        self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["command"] = self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL_BOX
+        self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL["command"] = self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL_COMMAND
         self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL.select() if self.config.COPY_FROM_SAVE_TO_ORIGINAL == "True" else self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL.deselect()
 
         self.CHECKBOX_DSPGAME_START_GAME_VAR = tk.BooleanVar()
@@ -357,9 +364,22 @@ class MainWindow(tk.Tk):
         self.CHECKBOX_DSPGAME_START_GAME.place(x=390, y=130, width=70, height=25)
         self.CHECKBOX_DSPGAME_START_GAME["offvalue"] = False
         self.CHECKBOX_DSPGAME_START_GAME["onvalue"] = True
-        self.CHECKBOX_DSPGAME_START_GAME["command"] = self.CHECKBOX_DSPGAME_START_GAME_BOX
-        print(self.config.DSPGAME_START_GAME)
+        self.CHECKBOX_DSPGAME_START_GAME["command"] = self.CHECKBOX_DSPGAME_START_GAME_COMMAND
         self.CHECKBOX_DSPGAME_START_GAME.select() if self.config.DSPGAME_START_GAME == "True" else self.CHECKBOX_DSPGAME_START_GAME.deselect()
+
+        self.CHECKBOX_LOGOFF_VAR = tk.BooleanVar()
+        self.CHECKBOX_LOGOFF=tk.Checkbutton(self, variable=self.CHECKBOX_LOGOFF_VAR)
+        ft = tkFont.Font(family='Times',size=10)
+        self.CHECKBOX_LOGOFF["font"] = ft
+        self.CHECKBOX_LOGOFF["fg"] = "#333333"
+        self.CHECKBOX_LOGOFF["justify"] = "center"
+        self.CHECKBOX_LOGOFF["text"] = ""
+        self.CHECKBOX_LOGOFF.place(x=390, y=160, width=70, height=25)
+        self.CHECKBOX_LOGOFF["offvalue"] = False
+        self.CHECKBOX_LOGOFF["onvalue"] = True
+        self.CHECKBOX_LOGOFF["command"] = self.CHECKBOX_LOGOFF_COMMAND
+        self.CHECKBOX_LOGOFF.select() if self.config.LOGOFF else self.CHECKBOX_LOGOFF.deselect()
+
 
     def messagebox_view(self):
         self.MESSAGE_BOX=tk.Message(self)
@@ -397,37 +417,61 @@ class MainWindow(tk.Tk):
         else:
             tkMSG.showerror('ERROR!','Spiel läuft bereits')
 
-    def CHECKBOX_DEBUG_BOX(self):
+    def CHECKBOX_DEBUG_COMMAND(self):
         self.config.update_config('DEBUG', self.CHECKBOX_DEBUG_VAR.get())
 
-    def CHECKBOX_FOLDER_WATCHDOG_BOX(self):
+    def CHECKBOX_FOLDER_WATCHDOG_COMMAND(self):
         self.config.update_config('FOLDER_WATCHDOG', self.CHECKBOX_FOLDER_WATCHDOG_VAR.get())
 
-    def CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL_BOX(self):
+    def CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL_COMMAND(self):
         self.config.update_config('COPY_FROM_SAVE_TO_ORIGINAL', self.CHECKBOX_COPY_FROM_SAVE_TO_ORIGINAL_VAR.get())
 
-    def CHECKBOX_DSPGAME_START_GAME_BOX(self):
+    def CHECKBOX_DSPGAME_START_GAME_COMMAND(self):
         self.config.update_config('DSPGAME_START_GAME', self.CHECKBOX_DSPGAME_START_GAME_VAR.get())
+
+    def CHECKBOX_LOGOFF_COMMAND(self):
+        global final_time_str
+        if not self.config.LOGOFF:
+            self.config.LOGOFF = True
+            self.shutdowntime = datetime.datetime.now() + datetime.timedelta(minutes=int(int(self.config.COUNTER_TO_LOGOFF) * 10))
+            self.final_time_str = self.shutdowntime.strftime('%d/%m/%Y %H:%M:%S')
+            print(f'ACHTUNG: Logofftimer aktiviert, herunterfahren in {int(int(self.config.COUNTER_TO_LOGOFF) * 10)} Minuten! ({self.final_time_str})')
+        else:
+            self.config.LOGOFF = False
+            print(f'Logofftimer deaktiviert')
 
     def stop(self):
         if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
             if tkMSG.askokcancel('ACHTUNG!', 'Spiel läuft noch,\nwirklich beenden?'):
                 self.destroy()
             else:
-                tkMSG.showinfo('Oh happy day','Programm bleibt aktiv')
+                tkMSG.showinfo('Oh happy day', 'Programm bleibt aktiv')
         else:
             self.destroy()
 
     def update_messages(self):
         if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
             self.MESSAGE_BOX["fg"] = "#f00"
-            self.MESSAGE_BOX["text"] = 'ACHTUNG!:\nDas Spiel läuft noch, das Programm nicht beenden,\nsonst werden keine Savegames kopiert'
+            if self.config.LOGOFF:
+                self.MESSAGE_BOX[
+                    "text"] = f'ACHTUNG!:\nLogoff timer Aktiviert\nDas System wird um\n{self.final_time_str}\nheruntergefahren!!!'
+                self.LABEL_LOGOFF["fg"] = "#f00"
+                self.LABEL_LOGOFF["text"] = f'Logofftimer: Shutdown um {self.final_time_str}'
+            else:
+                self.LABEL_LOGOFF["fg"] = "#123"
+                self.LABEL_LOGOFF["text"] = f"Logofftimer {int(self.config.COUNTER_TO_LOGOFF) * 10} min"
+                self.MESSAGE_BOX[
+                    "text"] = 'ACHTUNG!:\nDas Spiel läuft noch, das Programm nicht beenden,\nsonst werden keine Savegames kopiert'
         else:
             self.MESSAGE_BOX["text"] = 'Spiel läuft nicht, Programm kann beendet werden'
         self.after(1000, self.update_messages)
+
 def main():
     global config
     config = config_tools()
+    if config.COPY_FROM_SAVE_TO_ORIGINAL in [True, "True"]:
+        print('COPY_FROM_SAVE_TO_ORIGINAL: Kopiere Savegames')
+        copy_to_ramdisk()
     print('Watchdog wird gestartet')
     watchdog = threaded_observer()
     print('Watchdog wurde gestartet')
