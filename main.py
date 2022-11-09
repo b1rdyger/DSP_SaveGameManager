@@ -119,7 +119,7 @@ class Handler(FileSystemEventHandler):
                     shutil.move(f'{event.src_path}', f'{config.BACKUP_SAVE_PATH}\\{split_path[-1]}')
                     self.MOVE_COUNT += 1
                     if self.MOVE_COUNT == 3:
-                        check_logoff(config.COUNTER_TO_LOGOFF)
+                        check_logoff()
                         self.MOVE_COUNT = 0
                 else:
                     print("Speicherpunkt %s wurde erstellt, aber er wird Ignoriert" % event.src_path)
@@ -178,22 +178,6 @@ def checkIfProcessRunning(processName):
             pass
     return False
 
-def check_logoff(counter_to_logoff):
-    global COUNT
-    if config.LOGOFF:
-        if COUNT == counter_to_logoff:
-            time.sleep(10)
-            print('Spiel wird beendet')
-            os.system(f"taskkill /im {config.DSPGAME_PROCESS}")
-            while checkIfProcessRunning(config.DSPGAME_PROCESS):
-                print('Spiel laeuft noch')
-            print('Spiel wurde beendet\n Python wird beendet')
-            os.system("shutdown /s /t 60")
-            sys.exit()
-        COUNT +=1
-    if config.DEBUG:
-        print(f'Logoff = {config.LOGOFF}\nCounter_to_logoff= {counter_to_logoff*10} min\nActual Counter = {COUNT}\n')
-
 def get_last_saves(folder):
     files = list(filter(os.path.isfile, glob.glob(folder + "\\*")))
     files.sort(key=lambda x: os.path.getmtime(x))
@@ -226,6 +210,24 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
                 time.sleep(1)
     else:
         print('Es wurde nichts kopiert')
+
+def check_logoff():
+    global COUNT
+    if config.LOGOFF:
+        COUNT += 1
+        if int(COUNT) == int(config.COUNTER_TO_LOGOFF):
+            time.sleep(10)
+            print('Spiel wird beendet')
+            os.system(f"taskkill /im {config.DSPGAME_PROCESS}")
+            while checkIfProcessRunning(config.DSPGAME_PROCESS):
+                print('Spiel laeuft noch')
+            print('Spiel wurde beendet\n Python wird beendet')
+            os.system("shutdown /s /t 60")
+            sys.exit()
+    if config.DEBUG:
+        print(
+            f'Logoff = {config.LOGOFF}\nCounter_to_logoff= {int(int(config.COUNTER_TO_LOGOFF) * 10)} min\nActual Counter = {COUNT}\n')
+
 
 class MainWindow(tk.Tk):
     def __init__(self, watchdog, config):
@@ -379,7 +381,6 @@ class MainWindow(tk.Tk):
         self.CHECKBOX_LOGOFF["onvalue"] = True
         self.CHECKBOX_LOGOFF["command"] = self.CHECKBOX_LOGOFF_COMMAND
         self.CHECKBOX_LOGOFF.select() if self.config.LOGOFF else self.CHECKBOX_LOGOFF.deselect()
-
 
     def messagebox_view(self):
         self.MESSAGE_BOX=tk.Message(self)
