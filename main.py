@@ -236,6 +236,7 @@ class MainWindow(tk.Tk):
         self.watchdog = watchdog
         self.LOGOFF = False
         self.title("DSP_SaveGameManager")
+        self.wm_attributes("-transparentcolor", "grey")
         #setting window size
         width=600
         height=500
@@ -250,7 +251,8 @@ class MainWindow(tk.Tk):
         self.buttons_view()
         self.update_messages()
         self.main() #Main routine
-
+        self.bind('<Return>', lambda x: self.button_click('start'))
+        self.bind('<Escape>', lambda x: self.button_click('stop'))
 
     def main(self):
         print('Window wird erstellt')
@@ -314,7 +316,6 @@ class MainWindow(tk.Tk):
         self.LABEL_LOGOFF["justify"] = "right"
         self.LABEL_LOGOFF["text"] = f"Logofftimer {int(self.config.COUNTER_TO_LOGOFF) * 10} min"
         self.LABEL_LOGOFF.place(x=120,y=160,width=255,height=30)
-
 
     def checkboxes_view(self):
         self.CHECKBOX_DEBUG_VAR = tk.BooleanVar()
@@ -392,31 +393,25 @@ class MainWindow(tk.Tk):
         self.MESSAGE_BOX.place(x=40,y=340,width=497,height=127)
 
     def buttons_view(self):
-        BUTTON_SAVE=tk.Button(self)
-        BUTTON_SAVE["bg"] = "#e9e9ed"
+        self.BUTTON_SAVE=tk.Button(self)
+        self.BUTTON_SAVE["bg"] = "#e9e9ed"
         ft = tkFont.Font(family='Times',size=10)
-        BUTTON_SAVE["font"] = ft
-        BUTTON_SAVE["fg"] = "#000000"
-        BUTTON_SAVE["justify"] = "center"
-        BUTTON_SAVE["text"] = "Start DSP"
-        BUTTON_SAVE.place(x=420,y=450,width=70,height=25)
-        BUTTON_SAVE["command"] = lambda: self.start_dsp()
+        self.BUTTON_SAVE["font"] = ft
+        self.BUTTON_SAVE["fg"] = "#000000"
+        self.BUTTON_SAVE["justify"] = "center"
+        self.BUTTON_SAVE["text"] = "Start DSP"
+        self.BUTTON_SAVE.place(x=420,y=450,width=70,height=25)
+        self.BUTTON_SAVE["command"] = lambda: self.button_clicks('start')
 
-        BUTTON_BEENDEN=tk.Button(self)
-        BUTTON_BEENDEN["bg"] = "#e9e9ed"
+        self.BUTTON_BEENDEN=tk.Button(self)
+        self.BUTTON_BEENDEN["bg"] = "#e9e9ed"
         ft = tkFont.Font(family='Times',size=10)
-        BUTTON_BEENDEN["font"] = ft
-        BUTTON_BEENDEN["fg"] = "#000000"
-        BUTTON_BEENDEN["justify"] = "center"
-        BUTTON_BEENDEN["text"] = "Beenden"
-        BUTTON_BEENDEN.place(x=500,y=450,width=70,height=25)
-        BUTTON_BEENDEN["command"] = lambda: self.stop()
-
-    def start_dsp(self):
-        if not checkIfProcessRunning(self.config.DSPGAME_PROCESS):
-            subprocess.Popen(rf"{self.config.STEAM_PATH} -applaunch 1366540")
-        else:
-            tkMSG.showerror('ERROR!','Spiel läuft bereits')
+        self.BUTTON_BEENDEN["font"] = ft
+        self.BUTTON_BEENDEN["fg"] = "#000000"
+        self.BUTTON_BEENDEN["justify"] = "center"
+        self.BUTTON_BEENDEN["text"] = "Beenden"
+        self.BUTTON_BEENDEN.place(x=500,y=450,width=70,height=25)
+        self.BUTTON_BEENDEN["command"] = lambda: self.button_clicks('stop')
 
     def CHECKBOX_DEBUG_COMMAND(self):
         self.config.update_config('DEBUG', self.CHECKBOX_DEBUG_VAR.get())
@@ -441,18 +436,33 @@ class MainWindow(tk.Tk):
             self.config.LOGOFF = False
             print(f'Logofftimer deaktiviert')
 
-    def stop(self):
-        if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
-            if tkMSG.askokcancel('ACHTUNG!', 'Spiel läuft noch,\nwirklich beenden?'):
-                self.destroy()
+    def button_click(self, args):
+        if args == 'start':
+            self.button_functions('start_dsp')
+        if args == 'stop':
+            self.button_functions('stop_programm')
+
+    def button_functions(self, args):
+        if args == 'start_dsp':
+            if not checkIfProcessRunning(self.config.DSPGAME_PROCESS):
+                subprocess.Popen(rf"{self.config.STEAM_PATH} -applaunch 1366540")
             else:
-                tkMSG.showinfo('Oh happy day', 'Programm bleibt aktiv')
-        else:
-            self.destroy()
+                tkMSG.showerror('ERROR!', 'Spiel läuft bereits')
+
+        if args == 'stop_programm':
+            if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
+                if tkMSG.askokcancel('ACHTUNG!', 'Spiel läuft noch,\nwirklich beenden?'):
+                    self.destroy()
+                else:
+                    tkMSG.showinfo('Oh happy day', 'Programm bleibt aktiv')
+            else:
+                self.destroy()
+
 
     def update_messages(self):
         if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
             self.MESSAGE_BOX["fg"] = "#f00"
+            self.BUTTON_SAVE["text"] = "DSP Aktiv!"
             if self.config.LOGOFF:
                 self.MESSAGE_BOX[
                     "text"] = f'ACHTUNG!:\nLogoff timer Aktiviert\nDas System wird um\n{self.final_time_str}\nheruntergefahren!!!'
@@ -464,6 +474,7 @@ class MainWindow(tk.Tk):
                 self.MESSAGE_BOX[
                     "text"] = 'ACHTUNG!:\nDas Spiel läuft noch, das Programm nicht beenden,\nsonst werden keine Savegames kopiert'
         else:
+            self.BUTTON_SAVE["text"] = "Start DSP"
             self.MESSAGE_BOX["text"] = 'Spiel läuft nicht, Programm kann beendet werden'
         self.after(1000, self.update_messages)
 
