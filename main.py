@@ -1,23 +1,18 @@
-# -*- coding: utf-8 -*-
-import datetime
-import glob
-import os
 import shutil
 import subprocess
 import sys
 import time
-import tkinter as tk
-from threading import Thread
-from configparser import ConfigParser
+import datetime
 import psutil
-from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-import tkinter.font as tkFont
-import tkinter.messagebox as tkMSG
+from watchdog.events import FileSystemEventHandler
 
-"""
-Start global variables
-"""
+
+#Globals
+DSPGAME_PROCESS = 'DSPGAME.exe'
+RAW_DISK_SAVE_PATH=rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save'
+SSD_SAVE_PATH=rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup'
+GAME_PROCESS = False
 COUNT = 0
 MOVE_COUNT = 0
 """
