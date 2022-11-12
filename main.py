@@ -1,23 +1,24 @@
+# -*- coding: utf-8 -*-
+import datetime
+import glob
+import os
 import shutil
 import subprocess
 import sys
 import time
-import datetime
+import tkinter as tk
+from threading import Thread
+from configparser import ConfigParser
+from app.MemoryFileSystem import MemoryFileSystem
 import psutil
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+import tkinter.font as tkFont
+import tkinter.messagebox as tkMSG
 
 
-#Globals
-DSPGAME_PROCESS = 'DSPGAME.exe'
-RAW_DISK_SAVE_PATH=rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save'
-SSD_SAVE_PATH=rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup'
-GAME_PROCESS = False
 COUNT = 0
 MOVE_COUNT = 0
-"""
-End global variables
-"""
 
 class config_tools():
     LOGOFF = False
@@ -192,7 +193,7 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
         found2 = False
         tkMSG.showerror('ERROR:', f'Dateipfad "{config.DSP_SAVEGAME_FOLDER}" nicht gefunden\n\n Es wird nicht kopiert')
     if found1 and found2:
-        if files == [] or files == "" or files is None:
+        if files in ['', [], None]:
             print('Keine Savegames gefunden')
         else:
             list_savegames = get_last_saves(config.BACKUP_SAVE_PATH)
@@ -211,8 +212,8 @@ def check_logoff():
     if config.LOGOFF:
         COUNT += 1
         if int(COUNT) == int(config.COUNTER_TO_LOGOFF):
-            time.sleep(10)
             print('Spiel wird beendet')
+            time.sleep(5)
             os.system(f"taskkill /im {config.DSPGAME_PROCESS}")
             while checkIfProcessRunning(config.DSPGAME_PROCESS):
                 print('Spiel laeuft noch')
@@ -473,6 +474,7 @@ class MainWindow(tk.Tk):
             self.MESSAGE_BOX["text"] = 'Spiel läuft nicht, Programm kann beendet werden'
         self.after(1000, self.update_messages)
 
+
 def main():
     global config
     config = config_tools()
@@ -485,6 +487,10 @@ def main():
     app = MainWindow(watchdog, config)
     app.mainloop()
 
+os.listdir()
 
 if __name__ == '__main__':
-    main()
+    from app.MemoryFileSystem import MemoryFileSystem
+    # main()
+    config = config_tools()
+    mfs = MemoryFileSystem(config.DSP_SAVEGAME_FOLDER, config.BACKUP_SAVE_PATH)
