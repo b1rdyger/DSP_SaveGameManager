@@ -81,12 +81,12 @@ class MemoryFileSystem:
 
     def restore_save_empty(self):
         try:
-            os.rmdir(self.save_path)
             os.mkdir(self.save_path)
         finally:
             pass
 
     def __del__(self):
+        self.delete_save_folder()
         self.destroy_ram_drive()
         self.restore_save_empty()
 
