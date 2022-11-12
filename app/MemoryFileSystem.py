@@ -75,7 +75,10 @@ class MemoryFileSystem:
         if files_in_save not in [None, '']:
             for file_name in files_in_save:
                 if file_name != self.hidden_tag_file:
-                    shutil.move(os.path.join(self.save_path, file_name), self.backup_path)
+                    try:
+                        shutil.move(os.path.join(self.save_path, file_name), self.backup_path)
+                    except:
+                        pass
         os.rmdir(self.save_path)
         return True
 
