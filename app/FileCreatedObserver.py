@@ -1,3 +1,6 @@
+import os.path
+import pathlib
+
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 

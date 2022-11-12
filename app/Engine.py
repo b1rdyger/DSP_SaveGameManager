@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import threading
@@ -13,6 +14,7 @@ from app.widgets.ConsoleOutput import ConsoleOutput
 class Engine:
     root_dir = None
     config = None
+    logger = logging.getLogger(__name__)
 
     def __init__(self, root_dir):
         self.root_dir = root_dir
@@ -48,7 +50,7 @@ class Engine:
         self.fch.restore_last_save_from_backup()
 
         # self._mfs_thread = threading.Thread(target=self.mfs.run).start()
-        self._fch_thread = threading.Thread(target=self.fch.run).start()
+        self._fch_thread = threading.Thread(target=self.fch.run, daemon=True).start()
 
     def __del__(self):
         # self._mfs_thread.join()

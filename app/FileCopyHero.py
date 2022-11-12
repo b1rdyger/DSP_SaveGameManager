@@ -1,12 +1,10 @@
-from datetime import datetime, timedelta
 import glob
+import logging
 import os
 import shutil
-import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from pprint import pprint
 
 from app.FileCreatedObserver import FileCreatedObserver
 from app.SGMEvents.FCEEvents import FCHCannotUse, FCHRestored
@@ -54,7 +52,10 @@ class FileCopyHero:
 
     def smart_backup(self):
         self.console_log('Smart backup')
-        self.full_backup()
+        files_in_save = os.listdir(self.save_from)
+        if files_in_save not in [None, '']:
+            # @todo get cluster
+            self.backup_files(files_in_save)
 
     def restore_last_save_from_backup(self) -> bool:
         first_backup_block = next(iter(self.save_to_list or []), None)
@@ -77,7 +78,7 @@ class FileCopyHero:
                 self._event_bus.emit(FCHRestored)
             except Exception as e:
                 self.console_log(f'[error:{savegame_filename_only}] was not restored')
-                print(e)
+                logging.exception(e)
 
     def backup_files(self, files: list[str]):
         for save_to in self.save_to_list:
@@ -105,6 +106,3 @@ class FileCopyHero:
 
     def run(self):
         self.fco.start()
-        while True:
-            time.sleep(1)
-        pass
