@@ -22,4 +22,12 @@ Engine -> FileCopyHero: save, because of shutdown
 Engine -> MemoryFileSystem: unmount ram-drive
 Engine -> FileCopyHero: copy back to original save
 
+== RAM-Drive ==
+
+Engine -> MemoryFileSystem: mount
+MemoryFileSystem -> Engine: was mounted
+Engine --> FileCopyHero: inform about new RAM-Drive
+FileCopyHero -> FileCopyHero: symlink logik (backup)
+FileCopyHero -> Engine: done
+
 @enduml

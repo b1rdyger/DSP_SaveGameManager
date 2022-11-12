@@ -2,6 +2,7 @@
   "_comment": "NO EDITING REQUIRED - SET EVERYTHING IN THE USER INTERFACE!",
   "title": "Dyson Sphere Program",
   "process_name": "DSPGame.exe",
+  "steam_path": "C:\\Spiele\\Steam\\steam.exe",
   "common_save_dir": "E:\\bla\\save",
   "backup_save_dirs": [
     {

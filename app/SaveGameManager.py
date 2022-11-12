@@ -1,25 +1,43 @@
 import json
 import os
+import subprocess
 import threading
 import tkinter as tk
-from tkinter import Menu, ttk, LEFT, RIGHT
+from tkinter import Menu, ttk, LEFT, RIGHT, DISABLED, NORMAL
 from tkinter import N, S, W, E
 from tkinter.ttk import Scrollbar
 
 from PIL import ImageTk, Image
 
 from app import Engine
+from app.SGMEvents.GuiEvents import SGMStop
+from app.SGMEvents.MFSEvents import *
+from app.SGMEvents.PCEvents import PCRunning
 from app.widgets.ConsoleOutput import ConsoleOutput
 
 
 class SaveGameWindow:
     frame_bg = '#ddd'
+    game_running = False
+    last_state = None
 
     def ram_drive_mounted(self):
         self._memory_save_game.configure(bg='lime')
 
     def ram_drive_unmounted(self):
         self._memory_save_game.configure(bg='#c2d5e6')
+
+    def process_checker(self, *state):
+        self.game_running = state
+        if self.last_state == state:
+            return
+        if state:
+            self.frame_game.configure(background='lime')
+            self.btn_start_game.configure(state=DISABLED)
+        else:
+            self.frame_game.configure(background='red')
+            self.btn_start_game.configure(state=NORMAL)
+        self.last_state = state
 
     def __init__(self, engine: Engine):
         # setup vars
@@ -40,35 +58,37 @@ class SaveGameWindow:
         self.configure_grid_weights()
 
         # events
-        self.event_bus.add_listener('mfs.symlink.created', self.ram_drive_mounted)
-        self.event_bus.add_listener('mfs.symlink.removed', self.ram_drive_unmounted)
+        self.event_bus.add_listener(MFSSymlinkCreated, self.ram_drive_mounted)
+        self.event_bus.add_listener(MFSSymlinkRemoved, self.ram_drive_unmounted)
+        self.event_bus.add_listener(PCRunning, self.process_checker)
+        self.root.protocol("WM_DELETE_WINDOW", lambda: threading.Thread(target=self.on_closing, daemon=True).start())
 
         # self.root.resizable(False, False)
         # self.root.protocol("WM_DELETE_WINDOW", self.root.iconify)
         # logo = ImageTk.PhotoImage(file=self.asset_dir + 'dsp_logo_rel32.png')
         self._generate_frame_game(None)
 
-        _frame_disks_game = tk.Frame(self.root, bg=self.frame_bg, height=100, padx=3, pady=2)
-        _frame_disks_game.grid(row=1, column=0, sticky=N+S+E+W, padx=2, pady=2)
-        _frame_disks_game.columnconfigure(0, weight=0)
-        _frame_disks_game.columnconfigure(1, weight=1)
+        frame_disks_game = tk.Frame(self.root, bg=self.frame_bg, height=100, padx=3, pady=2)
+        frame_disks_game.grid(row=1, column=0, sticky=N+S+E+W, padx=2, pady=2)
+        frame_disks_game.columnconfigure(0, weight=0)
+        frame_disks_game.columnconfigure(1, weight=1)
 
-        label_arrow = tk.Canvas(_frame_disks_game, bg=self.frame_bg, bd=0, highlightthickness=0, width=32, height=32)
+        label_arrow = tk.Canvas(frame_disks_game, bg=self.frame_bg, bd=0, highlightthickness=0, width=32, height=32)
         icon_game = ImageTk.PhotoImage(Image.open(f'{self.asset_dir}arrow_right.png'))
         label_arrow.create_image(0, 0, image=icon_game, anchor=N+W)
         label_arrow.grid(row=0, column=0, padx=0, pady=0, ipadx=0, ipady=0)
 
-        default_save_game = tk.Label(_frame_disks_game, text='default save-path', bg='#c2d5e6', borderwidth=2,
+        default_save_game = tk.Label(frame_disks_game, text='default save-path', bg='#c2d5e6', borderwidth=2,
                                      relief='solid', padx=6, pady=4, anchor=W)
         default_save_game.grid(row=0, column=1, sticky=N+E+W, padx=4, pady=4)
-        self._memory_save_game = tk.Label(_frame_disks_game, text='RAM-disk', bg='#c2d5e6', borderwidth=2,
+        self._memory_save_game = tk.Label(frame_disks_game, text='RAM-disk', bg='#c2d5e6', borderwidth=2,
                                           relief='solid', padx=6, pady=4, anchor=W)
         self._memory_save_game.grid(row=1, column=1, sticky=N+E+W, padx=4, pady=4)
 
-        frame_disks_others = tk.Frame(self.root, bg='lime', padx=3, pady=2)
+        frame_disks_others = tk.Frame(self.root, bg=self.frame_bg, padx=3, pady=2)
         frame_disks_others.grid(row=1, column=1, sticky=N+S+E+W, ipadx=2, ipady=1, padx=2, pady=2)
 
-        _frame_log = tk.Frame(self.root, bg='yellow', padx=3, pady=2)
+        _frame_log = tk.Frame(self.root, bg=self.frame_bg, padx=3, pady=2)
         _frame_log.grid(row=2, column=0, columnspan=2, sticky=N+S+E+W, ipadx=2, ipady=1, padx=2, pady=2)
 
         text_log = ConsoleOutput(self.root_dir, self.event_bus, _frame_log)
@@ -87,15 +107,25 @@ class SaveGameWindow:
         self.event_bus.remove_all_listener()
         cu1.join()
 
+    def on_closing(self):
+        self.engine.stop()
+        self.root.destroy()
+
+    def start_dsp(self):
+        subprocess.Popen(rf"{self.config.get('steam_path')} -applaunch 1366540")
+
     def _generate_frame_game(self, logo):
-        frame_game = tk.Frame(self.root, bg='red', height=80, padx=3, pady=2)
-        frame_game.grid(row=0, column=0, columnspan=2, sticky=N + S + E + W, padx=2, pady=2)
-        frame_game.rowconfigure(0, weight=0, minsize=40)
-        frame_game.rowconfigure(1, weight=0, minsize=40)
-        frame_game.columnconfigure(0, weight=1)
-        frame_game.columnconfigure(1, weight=0)
-        btn_change_game = ttk.Button(frame_game, text='Start Game', command=self.root.destroy)
-        btn_change_game.grid(row=0, column=1, sticky=N + S + E + W, ipadx=3, ipady=3)
+        self.frame_game = tk.Frame(self.root, bg=self.frame_bg, height=80, padx=3, pady=2)
+        self.frame_game.grid(row=0, column=0, columnspan=2, sticky=N + S + E + W, padx=2, pady=2)
+        self.frame_game.rowconfigure(0, weight=0, minsize=40)
+        self.frame_game.rowconfigure(1, weight=0, minsize=40)
+        self.frame_game.columnconfigure(0, weight=1)
+        self.frame_game.columnconfigure(1, weight=0)
+        self.btn_start_game = ttk.Button(self.frame_game, text='Start Game!', command=lambda: self.start_dsp)
+        self.btn_start_game.grid(row=0, column=1, sticky=N + S + E + W, ipadx=3, ipady=3)
+        btn_change_game = ttk.Button(self.frame_game, text='Exit!',
+                                     command=lambda: threading.Thread(target=self.on_closing, daemon=True).start())
+        btn_change_game.grid(row=0, column=2, sticky=N + S + E + W, ipadx=3, ipady=3)
         # label_profile = tk.Label(frame_game, text='Dyson Sphere Program', compound='left', image=logo,
         #                          anchor=W, justify=LEFT)
         # label_profile.grid(row=0, column=0, sticky=W)

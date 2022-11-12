@@ -1,20 +1,24 @@
 import json
-import logging
-import os
 import sys
+
+from app.ProcessChecker import ProcessChecker
+from app.SGMEvents.GuiEvents import SGMStop
+from app.global_logging import *
+from app.MemoryFileSystemFacade import MemoryFileSystemFacade
+import os
 import threading
 
 from app.EventBus import EventBus
 from app.FileCopyHero import FileCopyHero, SaveToBlock
-from app.MemoryFileSystem import MemoryFileSystem
 from app.SaveGameManager import SaveGameWindow
 from app.widgets.ConsoleOutput import ConsoleOutput
+from app.SGMEvents.MFSEvents import MFSDriveCreated
 
 
 class Engine:
     root_dir = None
     config = None
-    logger = logging.getLogger(__name__)
+    hidden_tag_file = '.tag-ram'
 
     def __init__(self, root_dir):
         self.root_dir = root_dir
@@ -25,9 +29,9 @@ class Engine:
 
         self.load_config()
 
-        self.event_bus = EventBus()
+        self.event_bus: EventBus = EventBus()
 
-        self.fch = FileCopyHero(self.event_bus)
+        self.fch = FileCopyHero(self.event_bus, self.hidden_tag_file)
 
         self.fch.set_from_path(self.config.get('common_save_dir'))
         backup_folders = self.config.get('backup_save_dirs')
@@ -35,26 +39,38 @@ class Engine:
             self.fch.add_save_block(SaveToBlock(one_backup_folder['location']))
 
         # mfs = MemoryFileSystem(self.config.get('common_save_dir'), self.config.get('backup_save_dir')) # @todo
-        self.mfs = MemoryFileSystem(self.config.get('common_save_dir'), self.event_bus)
+        self.mfs = MemoryFileSystemFacade(self.config.get('common_save_dir'),
+                                          self.event_bus, self.hidden_tag_file).get_concrete()
+
+        self.pc = ProcessChecker(self.event_bus, self.config.get('process_name'))
+
+        # self.event_bus.add_listener(SGMStop, self.stop)
 
         SaveGameWindow(self)
 
+    # engine thread
+    def main_runner(self):
+        ram_drive_letter = self.mfs.create_or_just_get()
+
+        if ram_drive_letter is not None and self.fch.backup_for_symlink():
+            self.mfs.create_symlink()
+            self.fch.restore_last_save_from_backup()
+
+        # self._mfs_thread = threading.Thread(target=self.mfs.run).start()
+        self._fch_thread = threading.Thread(target=self.fch.run, daemon=True)
+        self._fch_thread.start()
+
+    def stop(self):
+        self.pc.stop_watching()
+        self._fch_thread.join()
+        self.fch.full_backup()
+        del self.mfs
+
     # offer gui console to other modules
+    @wrapee()
     def set_write_callback(self, co: ConsoleOutput):
         self.fch.set_console_write_callback(co.write)
         co.write("Welcome to the [highlighted:SaveGameManager]")
-
-    # engine thread
-    def main_runner(self):
-        # self.fch.full_backup()
-        self.fch.restore_last_save_from_backup()
-
-        # self._mfs_thread = threading.Thread(target=self.mfs.run).start()
-        self._fch_thread = threading.Thread(target=self.fch.run, daemon=True).start()
-
-    def __del__(self):
-        # self._mfs_thread.join()
-        self._fch_thread.join()
 
     def load_profile(self):
         profiles = self.config.get('profiles')

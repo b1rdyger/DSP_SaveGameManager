@@ -24,9 +24,10 @@ class FileCopyHero:
     save_to_list: list[SaveToBlock] = []
     log: callable = None
 
-    def __init__(self, event_bus):
+    def __init__(self, event_bus, hidden_tag_file):
         self.fco = None
         self._event_bus = event_bus
+        self.hidden_tag_file = hidden_tag_file
 
     def set_console_write_callback(self, write_callback: callable):
         self.log = write_callback
@@ -35,7 +36,7 @@ class FileCopyHero:
         if self.log:
             self.log(txt)
         else:
-            print(txt)
+            logging.info(txt)
 
     def set_from_path(self, save_from: str):
         self.save_from = save_from
@@ -44,18 +45,29 @@ class FileCopyHero:
     def add_save_block(self, save_to: SaveToBlock):
         self.save_to_list.append(save_to)
 
+    # just save everything everywhere without worrying about the config
     def full_backup(self):
         self.console_log('Full backup')
         files_in_save = os.listdir(self.save_from)
         if files_in_save not in [None, '']:
             self.backup_files(files_in_save)
 
-    def smart_backup(self):
-        self.console_log('Smart backup')
+    # save everything everywhere according to the configuration
+    def smart_backup(self, tryy=5) -> bool:
+        if tryy == 0:
+            self.console_log('[error:Smart backup fehlgeschlagen! Bitte manuelles Backup vornehmen!]')
+            return True
+        if tryy == 5:
+            self.console_log('[highlighted:Starte Smart backup]')
         files_in_save = os.listdir(self.save_from)
         if files_in_save not in [None, '']:
-            # @todo get cluster
-            self.backup_files(files_in_save)
+            # @todo get cluster, config, log_rotate
+            try:
+                self.backup_files(files_in_save)
+                self.console_log('[success:Smart backup erfolgreich!]')
+            except Exception:
+                time.sleep(0.2)
+                self.smart_backup(tryy-1)
 
     def restore_last_save_from_backup(self) -> bool:
         first_backup_block = next(iter(self.save_to_list or []), None)
@@ -65,7 +77,7 @@ class FileCopyHero:
         files = list(map(lambda f: {'file': f, 'mtime': os.path.getmtime(f)}, files))
         files = sorted(files, key=lambda d: d['mtime'], reverse=True)
 
-        split_dt = 60
+        split_dt = 59
         dts = (d0['mtime']-d1['mtime'] for d0, d1 in zip(files, files[1:]))
         split_at = [i for i, dt in enumerate(dts, 1) if dt >= split_dt]
         groups = [files[i:j] for i, j in zip([0]+split_at, split_at+[None])]
@@ -91,16 +103,23 @@ class FileCopyHero:
             for file in files:
                 shutil.copy(f'{self.save_from}{os.sep}{file}', f'{save_to.path}')
 
-    def _delete_save_folder(self) -> bool:
-        if os.path.isdir(self.save_path):
-            if not os.path.isdir(self.backup_path):
-                os.mkdir(self.backup_path)
-            files_in_save = os.listdir(self.save_path)
+    def backup_for_symlink(self) -> bool:
+        first_backup_path = next(iter(self.save_to_list or []), None)
+        if first_backup_path is None:
+            return False
+        else:
+            first_backup_path = first_backup_path.path
+        if os.path.isdir(self.save_from):
+            if not os.path.isdir(first_backup_path):
+                os.mkdir(first_backup_path)
+            files_in_save = os.listdir(self.save_from)
             if files_in_save not in [None, '']:
                 for file_name in files_in_save:
                     if file_name != self.hidden_tag_file:
-                        shutil.move(os.path.join(self.save_path, file_name), self.backup_path)
-            os.rmdir(self.save_path)
+                        shutil.copy(os.path.join(self.save_from, file_name), first_backup_path)
+                        time.sleep(0.3)
+                        os.remove(os.path.join(self.save_from, file_name))
+            os.rmdir(self.save_from)
             return True
         return False
 

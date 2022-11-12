@@ -1,5 +1,6 @@
 import os
 import re
+import tkinter
 from datetime import datetime
 from tkinter import Text, END
 
@@ -55,23 +56,3 @@ class ConsoleOutput(Text):
             tag_colors_css = tag_colors_css[found.span(0)[1]:]
         for tag, color in all_tags.items():
             self.tag_configure(tag, foreground=color)
-
-# if __name__ == '__main__':
-#     root = tkinter.Tk()
-#     root.geometry('732x382')
-#     eb = EventBus.EventBus()
-#     script_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir + os.sep + os.pardir + os.sep
-#     co = ConsoleOutput(script_dir, eb, root, height=20, width=40)
-#     co.pack(fill='both', expand=True)
-#     co.write("hello world!")
-#     co.write("bla[info:high light]foo bar")
-#     co.write("[info:start] something")
-#     co.write("something [info:end]")
-#     co.write("bla[info: this ]foo bar")
-#     co.write("cry [info:this] baz bar")
-#     co.write("cry [info:this] baz [info:here] bar")
-#     co.write("cry [info:this] baz [info:here] [X] bar")
-#     co.write("cry [info:this loot] bar")
-#     co.write("cry [info: wrong 1 bar")
-#     co.write("cry [wrong] 2 bar")
-#     root.mainloop()
