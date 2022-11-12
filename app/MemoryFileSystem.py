@@ -92,11 +92,12 @@ class MemoryFileSystem:
 
 
 if __name__ == '__main__':
-    p = 'E:\\bla\\save'
-    b = 'E:\\bla\\save-backup'
-    mfs = MemoryFileSystem(p, b)
-    time.sleep(3)
-    del mfs
+    print('MFS loaded')
+    #    p = 'E:\\bla\\save'
+#    b = 'E:\\bla\\save-backup'
+#    mfs = MemoryFileSystem(p, b)
+#    time.sleep(3)
+#    del mfs
 
 
 
