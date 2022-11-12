@@ -8,101 +8,26 @@ import sys
 import time
 import tkinter as tk
 from threading import Thread
-from configparser import ConfigParser
-from app.MemoryFileSystem import MemoryFileSystem
-import psutil
+
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 import tkinter.font as tkFont
 import tkinter.messagebox as tkMSG
 
+#Own Classes
+from app.MemoryFileSystem import MemoryFileSystem
+from app.ConfigSystem import ConfigSystem
+from app.global_functions import ProcessChecker, GetLastSaves
 
+#Globals
 COUNT = 0
 MOVE_COUNT = 0
 
-class config_tools():
-    LOGOFF = False
-    """
-    This class will check if there is a config file.
-    If there is a configfile this will be loaded.
-    If not a configfile will be created.
-    """
-    def __init__(self):
-        self.config = ConfigParser()
-        print('#####################')
-        print('Config:')
-        self.check_file('./config.ini')
-        self.LOGOFF = False
-
-    def check_file(self, file):
-        if not os.path.isfile(file):
-            print('No config found')
-            self.config.add_section('debug')
-            self.config.set('debug', 'DEBUG', 'True')
-            self.config.add_section('main')
-            self.config.set('main', 'DSPGAME_START_GAME', 'True')
-            self.config.set('main', 'FOLDER_WATCHDOG', 'True')
-            self.config.set('main', 'DSP_SAVEGAME_FOLDER', rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\Save')
-            self.config.set('main', 'BACKUP_SAVE_PATH', rf'C:\Users\{os.getlogin()}\Documents\Dyson Sphere Program\save_backup' )
-            self.config.set('main', 'COPY_FROM_SAVE_TO_ORIGINAL', 'True')
-            self.config.set('main', 'DSPGAME_PROCESS',  'DSPGAME.exe')
-            self.config.set('main', 'STEAM_PATH', r'C:\Program Files (x86)\Steam\Steam.exe')
-            self.config.add_section('logoff')
-            self.config.set('logoff', 'COUNTER_TO_LOGOFF', '6')
-
-            with open('config.ini', 'w') as f:
-                self.config.write(f)
-            print('Config: "config.ini" created')
-        else:
-            print('Config: "config.ini" found')
-        try:
-            self.config.read('config.ini')
-        except:
-            print('Config: cannot read "config.ini"')
-        print('Config: set global varaibles')
-        self.read_config()
-
-    def read_config(self):
-        try:
-            self.DEBUG = self.config.get('debug', 'DEBUG')
-            self.FOLDER_WATCHDOG = self.config.get('main','FOLDER_WATCHDOG')
-            self.DSP_SAVEGAME_FOLDER = self.config.get('main', 'DSP_SAVEGAME_FOLDER')
-            self.BACKUP_SAVE_PATH = self.config.get('main', 'BACKUP_SAVE_PATH')
-            self.COPY_FROM_SAVE_TO_ORIGINAL = self.config.get('main', 'COPY_FROM_SAVE_TO_ORIGINAL')
-            self.DSPGAME_PROCESS = self.config.get('main', 'DSPGAME_PROCESS')
-            self.DSPGAME_START_GAME = self.config.get('main', 'DSPGAME_START_GAME')
-            self.STEAM_PATH = self.config.get('main', 'STEAM_PATH')
-            self.COUNTER_TO_LOGOFF = self.config.get('logoff', 'COUNTER_TO_LOGOFF')
-            if self.DEBUG:
-                print(f'DEBUG = {self.DEBUG}\n'
-                      f'FOLDER_WATCHDOG = {self.FOLDER_WATCHDOG}\n'
-                      f'DSP_SAVEGAME_FOLDER = {self.DSP_SAVEGAME_FOLDER}\n'
-                      f'BACKUP_SAVE_PATH= {self.BACKUP_SAVE_PATH}\n'
-                      f'COPY_FROM_SAVE_TO_ORIGINAL = {self.COPY_FROM_SAVE_TO_ORIGINAL}\n'
-                      f'DSPGAME_PROCESS = {self.DSPGAME_PROCESS}\n'
-                      f'DSPGAME_START_GAME = {self.DSPGAME_START_GAME}\n'
-                      f'STEAM_PATH = {self.STEAM_PATH}\n'
-                      f'COUNTER_TO_LOGOFF = {self.COUNTER_TO_LOGOFF}\n')
-
-
-            return print('Config: set global variables sucessfully')
-        except KeyError as e:
-            return print(f'Config: {e}, Error read the configfile')
-
-    def update_config(self, checkbox, state):
-        self.config.read('./config.ini')
-        print(f'checkbox: {checkbox}, state={state}')
-        if 'DEBUG' in checkbox:
-            self.config.set('debug', f'{checkbox}', f'{state}')
-        else:
-            self.config.set('main', f'{checkbox}', f'{state}')
-        with open('config.ini', 'w+') as f:
-            self.config.write(f)
 
 class Handler(FileSystemEventHandler):
     MOVE_COUNT = 0
     def on_any_event(self, event):
-        GAME_PROCESS = bool(checkIfProcessRunning(config.DSPGAME_PROCESS))
+        GAME_PROCESS = bool(ProcessChecker(config.DSPGAME_PROCESS))
         if event.is_directory:
             return None
         elif event.event_type == 'created':
@@ -160,24 +85,6 @@ class threaded_observer(Thread):
             my_observer.stop()
             my_observer.join()
 
-def checkIfProcessRunning(processName):
-    '''
-    Check if there is any running process that contains the given name processName.
-    '''
-    #Iterate over the all the running process
-    for proc in psutil.process_iter():
-        try:
-            # Check if process name contains the given name string.
-            if processName.lower() in proc.name().lower():
-                return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False
-
-def get_last_saves(folder):
-    files = list(filter(os.path.isfile, glob.glob(folder + "\\*")))
-    files.sort(key=lambda x: os.path.getmtime(x))
-    return files[-3:]
 
 def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
     try:
@@ -196,7 +103,7 @@ def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
         if files in ['', [], None]:
             print('Keine Savegames gefunden')
         else:
-            list_savegames = get_last_saves(config.BACKUP_SAVE_PATH)
+            list_savegames = GetLastSaves(config.BACKUP_SAVE_PATH)
             print(f'Last Savegames are: {list_savegames}')
             for savegame in list_savegames:
                 savegame_filename_only = savegame.split('\\')[-1]
@@ -215,7 +122,7 @@ def check_logoff():
             print('Spiel wird beendet')
             time.sleep(5)
             os.system(f"taskkill /im {config.DSPGAME_PROCESS}")
-            while checkIfProcessRunning(config.DSPGAME_PROCESS):
+            while ProcessChecker(config.DSPGAME_PROCESS):
                 print('Spiel laeuft noch')
             print('Spiel wurde beendet\n Python wird beendet')
             os.system("shutdown /s /t 60")
@@ -253,10 +160,13 @@ class MainWindow(tk.Tk):
     def main(self):
         print('Window wird erstellt')
         print('Ueberprufe Game Prozess')
-        if not checkIfProcessRunning(self.config.DSPGAME_PROCESS) and self.config.DSPGAME_START_GAME in [True, "True"]:
+        if config.COPY_FROM_SAVE_TO_ORIGINAL in [True, "True"]:
+            print('COPY_FROM_SAVE_TO_ORIGINAL: Kopiere Savegames')
+            copy_to_ramdisk()
+        if not ProcessChecker(self.config.DSPGAME_PROCESS) and self.config.DSPGAME_START_GAME in [True, "True"]:
             print('Spiel wird gestartet')
             subprocess.Popen(rf"{self.config.STEAM_PATH} -applaunch 1366540")
-            while not checkIfProcessRunning(self.config.DSPGAME_PROCESS):
+            while not ProcessChecker(self.config.DSPGAME_PROCESS):
                 print('Warte auf Spielstart')
                 time.sleep(3)
             print('DSP erfolgreich gestartet')
@@ -397,7 +307,7 @@ class MainWindow(tk.Tk):
         self.BUTTON_SAVE["justify"] = "center"
         self.BUTTON_SAVE["text"] = "Start DSP"
         self.BUTTON_SAVE.place(x=420,y=450,width=70,height=25)
-        self.BUTTON_SAVE["command"] = lambda: self.button_clicks('start')
+        self.BUTTON_SAVE["command"] = lambda: self.button_click('start')
 
         self.BUTTON_BEENDEN=tk.Button(self)
         self.BUTTON_BEENDEN["bg"] = "#e9e9ed"
@@ -407,7 +317,7 @@ class MainWindow(tk.Tk):
         self.BUTTON_BEENDEN["justify"] = "center"
         self.BUTTON_BEENDEN["text"] = "Beenden"
         self.BUTTON_BEENDEN.place(x=500,y=450,width=70,height=25)
-        self.BUTTON_BEENDEN["command"] = lambda: self.button_clicks('stop')
+        self.BUTTON_BEENDEN["command"] = lambda: self.button_click('stop')
 
     def CHECKBOX_DEBUG_COMMAND(self):
         self.config.update_config('DEBUG', self.CHECKBOX_DEBUG_VAR.get())
@@ -430,7 +340,7 @@ class MainWindow(tk.Tk):
             print(f'ACHTUNG: Logofftimer aktiviert, herunterfahren in {int(int(self.config.COUNTER_TO_LOGOFF) * 10)} Minuten! ({self.final_time_str})')
         else:
             self.config.LOGOFF = False
-            print(f'Logofftimer deaktiviert')
+            print('Logofftimer deaktiviert')
 
     def button_click(self, args):
         if args == 'start':
@@ -440,13 +350,13 @@ class MainWindow(tk.Tk):
 
     def button_functions(self, args):
         if args == 'start_dsp':
-            if not checkIfProcessRunning(self.config.DSPGAME_PROCESS):
+            if not ProcessChecker(self.config.DSPGAME_PROCESS):
                 subprocess.Popen(rf"{self.config.STEAM_PATH} -applaunch 1366540")
             else:
                 tkMSG.showerror('ERROR!', 'Spiel läuft bereits')
 
         if args == 'stop_programm':
-            if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
+            if ProcessChecker(self.config.DSPGAME_PROCESS):
                 if tkMSG.askokcancel('ACHTUNG!', 'Spiel läuft noch,\nwirklich beenden?'):
                     self.destroy()
                 else:
@@ -456,7 +366,7 @@ class MainWindow(tk.Tk):
 
 
     def update_messages(self):
-        if checkIfProcessRunning(self.config.DSPGAME_PROCESS):
+        if ProcessChecker(self.config.DSPGAME_PROCESS):
             self.MESSAGE_BOX["fg"] = "#f00"
             self.BUTTON_SAVE["text"] = "DSP Aktiv!"
             if self.config.LOGOFF:
@@ -477,20 +387,13 @@ class MainWindow(tk.Tk):
 
 def main():
     global config
-    config = config_tools()
-    if config.COPY_FROM_SAVE_TO_ORIGINAL in [True, "True"]:
-        print('COPY_FROM_SAVE_TO_ORIGINAL: Kopiere Savegames')
-        copy_to_ramdisk()
+    config = ConfigSystem()
+    mfs = MemoryFileSystem(config.DSP_SAVEGAME_FOLDER, config.BACKUP_SAVE_PATH)
     print('Watchdog wird gestartet')
     watchdog = threaded_observer()
     print('Watchdog wurde gestartet')
     app = MainWindow(watchdog, config)
     app.mainloop()
 
-os.listdir()
-
 if __name__ == '__main__':
-    from app.MemoryFileSystem import MemoryFileSystem
-    # main()
-    config = config_tools()
-    mfs = MemoryFileSystem(config.DSP_SAVEGAME_FOLDER, config.BACKUP_SAVE_PATH)
+    main()
