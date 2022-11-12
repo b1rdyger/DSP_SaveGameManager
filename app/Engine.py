@@ -1,9 +1,10 @@
 import json
 import os
+import sys
 import threading
 
 from app.EventBus import EventBus
-from app.FileCopyHero import FileCopyHero
+from app.FileCopyHero import FileCopyHero, SaveToBlock
 from app.MemoryFileSystem import MemoryFileSystem
 from app.SaveGameManager import SaveGameWindow
 from app.widgets.ConsoleOutput import ConsoleOutput
@@ -15,7 +16,7 @@ class Engine:
 
     def __init__(self, root_dir):
         self.root_dir = root_dir
-        self._config_file = root_dir + 'config' + os.sep + 'games.json'
+        self._config_file = f'{root_dir}config{os.sep}games.json'
         self._console_output = None
         self._mfs_thread = None
         self._fch_thread = None
@@ -24,18 +25,28 @@ class Engine:
 
         self.event_bus = EventBus()
 
-        self.fch = FileCopyHero(self.config, self.event_bus)
+        self.fch = FileCopyHero(self.event_bus)
+
+        self.fch.set_from_path(self.config.get('common_save_dir'))
+        backup_folders = self.config.get('backup_save_dirs')
+        for one_backup_folder in backup_folders:
+            self.fch.add_save_block(SaveToBlock(one_backup_folder['location']))
+
         # mfs = MemoryFileSystem(self.config.get('common_save_dir'), self.config.get('backup_save_dir')) # @todo
-        # self.mfs = MemoryFileSystem("E:\\bla\\save", "E:\\bla\\save-backup", self.event_bus)
+        self.mfs = MemoryFileSystem(self.config.get('common_save_dir'), self.event_bus)
 
         SaveGameWindow(self)
 
+    # offer gui console to other modules
     def set_write_callback(self, co: ConsoleOutput):
-        self._console_output = co
-        self._console_output.write("[info:roger that]")
+        self.fch.set_console_write_callback(co.write)
+        co.write("Welcome to the [highlighted:SaveGameManager]")
 
     # engine thread
     def main_runner(self):
+        # self.fch.full_backup()
+        self.fch.restore_last_save_from_backup()
+
         # self._mfs_thread = threading.Thread(target=self.mfs.run).start()
         self._fch_thread = threading.Thread(target=self.fch.run).start()
 

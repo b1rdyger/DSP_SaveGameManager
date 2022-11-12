@@ -1,8 +1,8 @@
 .tags {
     --timestamp: #aaa;
-    --file: #9b5de5;
-    --tbd1: #f15bb5;
-    --highlighted: #fee440;
-    --info: #00bbf9;
-    --tbd2: #00f5d4;
+    --error: #ff595e;
+    --highlighted: #ffca3a;
+    --success: #8ac926;
+    --info: #1982c4;
+    --file: #6a4c93;
 }

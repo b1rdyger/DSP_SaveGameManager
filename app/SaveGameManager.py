@@ -27,13 +27,13 @@ class SaveGameWindow:
         self.config = self.engine.config
         self.event_bus = self.engine.event_bus
         self.root_dir = self.engine.root_dir
-        self.asset_dir = self.root_dir + 'assets' + os.sep
+        self.asset_dir = f'{self.root_dir}assets{os.sep}'
 
         # start
         self.root = tk.Tk()
         self.root.geometry('732x382')
         self.root.title('Savegame Manager')
-        self.root.iconphoto(False, tk.PhotoImage(file=self.asset_dir + 'logo' + os.sep + 'disk1-256.png'))
+        self.root.iconphoto(False, tk.PhotoImage(file=f'{self.asset_dir}logo{os.sep}disk1-256.png'))
 
         # setup layout
         self.generate_menu()
@@ -54,7 +54,7 @@ class SaveGameWindow:
         _frame_disks_game.columnconfigure(1, weight=1)
 
         label_arrow = tk.Canvas(_frame_disks_game, bg=self.frame_bg, bd=0, highlightthickness=0, width=32, height=32)
-        icon_game = ImageTk.PhotoImage(Image.open(self.asset_dir + 'arrow_right.png'))
+        icon_game = ImageTk.PhotoImage(Image.open(f'{self.asset_dir}arrow_right.png'))
         label_arrow.create_image(0, 0, image=icon_game, anchor=N+W)
         label_arrow.grid(row=0, column=0, padx=0, pady=0, ipadx=0, ipady=0)
 

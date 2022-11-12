@@ -7,3 +7,19 @@ class MFSDriveCreated(SGMEvent):
 
 class MFSDriveDestroyed(SGMEvent):
     pass
+
+
+class MFSSavePathNotEmpty(SGMEvent):
+    pass
+
+
+class MFSSavePathDoesNotExists(SGMEvent):
+    pass
+
+
+class MFSSymlinkCreated(SGMEvent):
+    pass
+
+
+class MFSSymlinkRemoved(SGMEvent):
+    pass

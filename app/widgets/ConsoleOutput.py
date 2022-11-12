@@ -25,12 +25,11 @@ class ConsoleOutput(Text):
     def write(self, msg: str):
         now = datetime.now()
         self.insert(END, '[' + now.strftime("%H:%M:%S") + '] ', 'timestamp')
-        while len(msg) > 0:
-            matched = re.search('\\[([a-zA-Z0-9]{1,5}):(.*?)]', msg)
-            if matched:
+        while msg != "":
+            if matched := re.search('\\[([a-zA-Z0-9]+):(.*?)]', msg):
                 all_start, _ = matched.span(0)
                 sub_msg_start, sub_msg_end = matched.span(2)
-                tag = matched.group(1)
+                tag = matched[1]
                 if all_start > 0:
                     self.insert(END, msg[:all_start])
                     msg = msg[all_start:]
@@ -46,20 +45,14 @@ class ConsoleOutput(Text):
         self.insert(END, "\n")
 
     def set_colors(self):
-        file = open(self.script_dir + 'app' + os.sep + 'widgets' + os.sep + 'tag_colors.css', mode='r')
-        tag_colors_css = file.read()
-        file.close()
-
+        with open(f'{self.script_dir}app{os.sep}widgets{os.sep}tag_colors.css', mode='r') as file:
+            tag_colors_css = file.read()
         all_tags = {}
-        while True:
-            found = re.search('--([a-zA-Z0-9_-]+)\\s*:\\s*(#[a-zA-Z0-9]{3,6});', tag_colors_css)
-            if found:
-                tag_name = found.group(1)
-                tag_color = found.group(2)
-                all_tags[tag_name] = tag_color
-                tag_colors_css = tag_colors_css[found.span(0)[1]:]
-            else:
-                break
+        while found := re.search('--([a-zA-Z0-9_-]+)\\s*:\\s*(#[a-zA-Z0-9]{3,6});', tag_colors_css):
+            tag_name = found[1]
+            tag_color = found[2]
+            all_tags[tag_name] = tag_color
+            tag_colors_css = tag_colors_css[found.span(0)[1]:]
         for tag, color in all_tags.items():
             self.tag_configure(tag, foreground=color)
 

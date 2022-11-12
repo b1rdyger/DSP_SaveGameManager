@@ -2,8 +2,17 @@
   "_comment": "NO EDITING REQUIRED - SET EVERYTHING IN THE USER INTERFACE!",
   "title": "Dyson Sphere Program",
   "process_name": "DSPGame.exe",
-  "common_save_dir": "%USERPROFILE%\\Documents\\Dyson Sphere Program\\Save",
-  "backup_save_dir": [
+  "common_save_dir": "E:\\bla\\save",
+  "backup_save_dirs": [
+    {
+      "location": "E:\\bla\\save-backup"
+    },
+    {
+      "location": "E:\\bla\\save-backup2"
+    }
+  ],
+  "_common_save_dir": "%USERPROFILE%\\Documents\\Dyson Sphere Program\\Save",
+  "_backup_save_dirs": [
     {
       "location": "%USERPROFILE%\\Documents\\Dyson Sphere Program\\Save_Backup",
       "copy_back": true
