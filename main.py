@@ -86,34 +86,6 @@ class threaded_observer(Thread):
             my_observer.join()
 
 
-def copy_to_ramdisk() -> None: #Kopiere Daten in die RAMDISK
-    try:
-        files = os.listdir(config.BACKUP_SAVE_PATH)
-        found1 = True
-    except FileNotFoundError as e:
-        tkMSG.showerror('ERROR:', f'Dateipfad nicht gefunden\n"{config.BACKUP_SAVE_PATH}"\n\n Es wird nicht kopiert')
-        found1 = False
-    try:
-        files2 = os.listdir(config.DSP_SAVEGAME_FOLDER)
-        found2 = True
-    except FileNotFoundError as e:
-        found2 = False
-        tkMSG.showerror('ERROR:', f'Dateipfad "{config.DSP_SAVEGAME_FOLDER}" nicht gefunden\n\n Es wird nicht kopiert')
-    if found1 and found2:
-        if files in ['', [], None]:
-            print('Keine Savegames gefunden')
-        else:
-            list_savegames = GetLastSaves(config.BACKUP_SAVE_PATH)
-            print(f'Last Savegames are: {list_savegames}')
-            for savegame in list_savegames:
-                savegame_filename_only = savegame.split('\\')[-1]
-                print('Savegame wird in RAMDISK geladen')
-                print(f'Datei: "{savegame}" wird nach "{config.DSP_SAVEGAME_FOLDER}\\{savegame_filename_only}" kopiert!')
-                shutil.copy(f'{config.BACKUP_SAVE_PATH}\\{savegame_filename_only}',f'{config.DSP_SAVEGAME_FOLDER}\\{savegame_filename_only}')
-                time.sleep(1)
-    else:
-        print('Es wurde nichts kopiert')
-
 def check_logoff():
     global COUNT
     if config.LOGOFF:
@@ -157,12 +129,44 @@ class MainWindow(tk.Tk):
         self.bind('<Return>', lambda x: self.button_click('start'))
         self.bind('<Escape>', lambda x: self.button_click('stop'))
 
+    def copy_to_ramdisk(self) -> None:
+        try:
+            files = os.listdir(config.BACKUP_SAVE_PATH)
+            found1 = True
+        except FileNotFoundError as e:
+            tkMSG.showerror('ERROR:',
+                            f'Dateipfad nicht gefunden\n"{config.BACKUP_SAVE_PATH}"\n\n Es wird nicht kopiert')
+            found1 = False
+        try:
+            files2 = os.listdir(config.DSP_SAVEGAME_FOLDER)
+            found2 = True
+        except FileNotFoundError as e:
+            found2 = False
+            tkMSG.showerror('ERROR:',
+                            f'Dateipfad "{config.DSP_SAVEGAME_FOLDER}" nicht gefunden\n\n Es wird nicht kopiert')
+        if found1 and found2:
+            if files in ['', [], None]:
+                print('Keine Savegames gefunden')
+            else:
+                list_savegames = GetLastSaves(config.BACKUP_SAVE_PATH)
+                print(f'Last Savegames are: {list_savegames}')
+                for savegame in list_savegames:
+                    savegame_filename_only = savegame.split('\\')[-1]
+                    print('Savegame wird in RAMDISK geladen')
+                    print(
+                        f'Datei: "{savegame}" wird nach "{config.DSP_SAVEGAME_FOLDER}\\{savegame_filename_only}" kopiert!')
+                    shutil.copy(f'{config.BACKUP_SAVE_PATH}\\{savegame_filename_only}',
+                                f'{config.DSP_SAVEGAME_FOLDER}\\{savegame_filename_only}')
+                    time.sleep(1)
+        else:
+            print('Es wurde nichts kopiert')
+
     def main(self):
         print('Window wird erstellt')
         print('Ueberprufe Game Prozess')
         if config.COPY_FROM_SAVE_TO_ORIGINAL in [True, "True"]:
             print('COPY_FROM_SAVE_TO_ORIGINAL: Kopiere Savegames')
-            copy_to_ramdisk()
+            self.copy_to_ramdisk()
         if not ProcessChecker(self.config.DSPGAME_PROCESS) and self.config.DSPGAME_START_GAME in [True, "True"]:
             print('Spiel wird gestartet')
             subprocess.Popen(rf"{self.config.STEAM_PATH} -applaunch 1366540")
