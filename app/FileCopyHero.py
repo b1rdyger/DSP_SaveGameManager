@@ -1,5 +1,4 @@
 import glob
-from app.global_logging import *
 import os
 import shutil
 import time
@@ -8,6 +7,7 @@ from pathlib import Path
 
 from app.FileCreatedObserver import FileCreatedObserver
 from app.SGMEvents.FCEEvents import FCHCannotUse, FCHRestored
+from app.global_logging import *
 
 
 @dataclass
@@ -107,7 +107,7 @@ class FileCopyHero:
                     time.sleep(0.1)
                     os.remove(f'{self.save_from}{os.sep}{file}')
                     self.console_log(f'[highlighted:Smart backup {file}]')
-            self.console_log('[success:Smart backup erfolgreich!]')
+
 
     def backup_for_symlink(self) -> bool:
         first_backup_path = next(iter(self.save_to_list or []), None)

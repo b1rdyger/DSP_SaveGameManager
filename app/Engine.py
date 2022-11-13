@@ -1,18 +1,14 @@
 import json
-import sys
-
-from app.ProcessChecker import ProcessChecker
-from app.SGMEvents.GuiEvents import SGMStop
-from app.global_logging import *
-from app.MemoryFileSystemFacade import MemoryFileSystemFacade
 import os
 import threading
 
 from app.EventBus import EventBus
 from app.FileCopyHero import FileCopyHero, SaveToBlock
+from app.MemoryFileSystemFacade import MemoryFileSystemFacade
+from app.ProcessChecker import ProcessChecker
 from app.SaveGameManager import SaveGameWindow
+from app.global_logging import *
 from app.widgets.ConsoleOutput import ConsoleOutput
-from app.SGMEvents.MFSEvents import MFSDriveCreated
 
 
 class Engine:
@@ -87,7 +83,6 @@ class Engine:
             self.config['common_save_dir'] = self.get_real_path(self.config['common_save_dir'])
         for one_backup_folder in self.config['backup_save_dirs']:
             one_backup_folder['location'] = self.get_real_path(one_backup_folder['location'])
-
 
     def get_real_path(self, path):
         if '%USERPROFILE%' in path:
