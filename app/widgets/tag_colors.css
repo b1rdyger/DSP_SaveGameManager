@@ -1,0 +1,8 @@
+.tags {
+    --timestamp: #aaa;
+    --error: #ff595e;
+    --highlighted: #ffca3a;
+    --success: #8ac926;
+    --info: #1982c4;
+    --file: #6a4c93;
+}
