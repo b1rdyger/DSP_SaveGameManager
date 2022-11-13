@@ -1,0 +1,33 @@
+@startuml
+control Engine
+Engine -> FileCopyHero
+
+Engine -> ConfigReader
+Engine -> MemoryFileSystem
+Engine -> Window: init / show
+Window --> Engine: start main thread
+
+Engine -> FileCopyHero: run threaded
+Engine -> MemoryFileSystem: run once
+
+== New Save File ==
+
+FileCopyHero -> Engine: just inform
+Engine -> Window: console log
+
+== Close ==
+
+Window -> Engine: close
+Engine -> FileCopyHero: save, because of shutdown
+Engine -> MemoryFileSystem: unmount ram-drive
+Engine -> FileCopyHero: copy back to original save
+
+== RAM-Drive ==
+
+Engine -> MemoryFileSystem: mount
+MemoryFileSystem -> Engine: was mounted
+Engine --> FileCopyHero: inform about new RAM-Drive
+FileCopyHero -> FileCopyHero: symlink logik (backup)
+FileCopyHero -> Engine: done
+
+@enduml
