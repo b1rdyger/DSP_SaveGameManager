@@ -34,8 +34,12 @@ class Engine:
         self.fch = FileCopyHero(self.event_bus, self.hidden_tag_file)
 
         self.fch.set_from_path(self.config.get('common_save_dir'))
-        if not os.path.exists(self.config.get('common_save_dir')):
+
+        if not os.path.exists(os.path.join(self.config.get('common_save_dir'))):
+            if os.path.islink(os.path.join(self.config.get('common_save_dir'))):
+                os.rmdir(self.config.get('common_save_dir'))
             os.mkdir(self.config.get('common_save_dir'))
+
         backup_folders = self.config.get('backup_save_dirs')
         for one_backup_folder in backup_folders:
             self.fch.add_save_block(SaveToBlock(one_backup_folder['location']))

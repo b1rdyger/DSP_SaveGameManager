@@ -102,12 +102,12 @@ class FileCopyHero:
                     self._event_bus.emit(FCHCannotUse, save_to.path)
                     continue
             for file in files:
-                if not self.hidden_tag_file in file:
+                if self.hidden_tag_file not in file:
                     shutil.copy2(f'{self.save_from}{os.sep}{file}', f'{save_to.path}')
                     time.sleep(0.1)
                     os.remove(f'{self.save_from}{os.sep}{file}')
                     self.console_log(f'[highlighted:Smart backup {file}]')
-            self.console_log(f'[success:Smart backup erfolgreich!]')
+            self.console_log('[success:Smart backup erfolgreich!]')
 
     def backup_for_symlink(self) -> bool:
         first_backup_path = next(iter(self.save_to_list or []), None)

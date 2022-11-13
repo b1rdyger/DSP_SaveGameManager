@@ -22,7 +22,7 @@ class ConsoleOutput(Text):
         self.event_bus = event_bus
 
         MessageByEvent(self.event_bus, self.write)
-
+        self.update_screen()
     def write(self, msg: str):
         now = datetime.now()
         self.insert(END, '[' + now.strftime("%H:%M:%S") + '] ', 'timestamp')
@@ -56,3 +56,7 @@ class ConsoleOutput(Text):
             tag_colors_css = tag_colors_css[found.span(0)[1]:]
         for tag, color in all_tags.items():
             self.tag_configure(tag, foreground=color)
+
+    def update_screen(self):
+        self.see("end")
+        self.after('1000', self.update_screen)
